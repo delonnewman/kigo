@@ -291,15 +291,16 @@ module Kigo
   end
 
   def self.next(xs)
-    return nil if xs.nil? or xs.empty?
+    return nil     if xs.nil? or xs.empty?
+    return xs.next if Cons === xs
 
-    xs.next
+    xs.drop(1)
   end
 
   def self.rest(xs)
     return Cons.empty if xs.nil? or xs.empty?
 
-    xs.next
+    self.next(xs)
   end
 
   CORE_FUNCTIONS = {
@@ -333,9 +334,11 @@ module Kigo
     # lists
     :list  => ->(*args) { Cons[*args] },
     :cons  => ->(x, xs) { cons(x, xs) },
-    :first => ->(xs) { first(xs) },
-    :next  => ->(xs) { self.next(xs) },
-    :rest  => ->(xs) { rest(xs) },
+
+    :first  => ->(xs) { first(xs) },
+    :next   => ->(xs) { self.next(xs) },
+    :rest   => ->(xs) { rest(xs) },
+    :empty? => ->(xs) { xs.empty? },
 
     # IO
     :puts => ->(*args) { puts *args }
@@ -602,6 +605,8 @@ module Kigo
     end
   end
 end
+
+Kigo.eval_file('core.kigo')
 
 #string = '"test" 1 + read * / @ ^hey (1 2 (3 4))'
 #

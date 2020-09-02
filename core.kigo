@@ -1,5 +1,12 @@
+(def identity
+  (lambda (x) x))
+
+(def always
+  (lambda (x)
+    (lambda () x)))
+
 (def map
-  (fn (f col)
-    (if (empty? col)
-      col
-      (cons (f (first col)) (map f (rest col))))))
+  (lambda (f col)
+    (cond
+      (empty? col) col
+      else (cons (f (first col)) (map f (rest col))))))
