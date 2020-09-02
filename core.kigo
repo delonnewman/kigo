@@ -1,9 +1,9 @@
-(def identity
-  (lambda (x) x))
-
-(def always
-  (lambda (x)
-    (lambda () x)))
+;(def identity
+;  (lambda (x) x))
+;
+;(def always
+;  (lambda (x)
+;    (lambda () x)))
 
 (def map
   (lambda (f col)

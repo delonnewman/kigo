@@ -26,9 +26,7 @@ module Kigo
   def read_string(string)
     array = []
     Reader.new(string).tap do |r|
-      until r.eof?
-        array << r.next!
-      end
+      array << r.next! until r.eof?
     end
     array
   end
@@ -441,7 +439,10 @@ module Kigo
         next_token! while whitespace?(current_token)
       end
 
-      if current_token == DOUBLE_QUOTE
+      if current_token == ';'
+        next_token! until current_token == "\n"
+        next_token!
+      elsif current_token == DOUBLE_QUOTE
         next_token!
         read_string!
       elsif current_token =~ DIGIT_PAT
