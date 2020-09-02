@@ -6,6 +6,8 @@ Ruby is already pretty lispy let's take it the rest of the way.
 
 - Make `send` a special form
 - Write tests
+- Make a compiler that compiles Kigo code to Ruby AST nodes
+- Make a compiler that compiles Kido code to readable Ruby code
 
 # See Also
 
