@@ -1,0 +1,5 @@
+(def map
+  (fn (f col)
+    (if (empty? col)
+      col
+      (cons (f (first col)) (map f (rest col))))))
