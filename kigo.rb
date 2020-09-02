@@ -9,11 +9,7 @@ module Kigo
     Reader.new(string).tap do |r|
       until r.eof?
         form = r.next!
-        begin
-          last = Kigo.eval(form, Environment.top_level)
-        rescue Kigo::RuntimeError => e
-          raise "Kigo error on line #{r.line}, column #{r.column}: #{e.message}"
-        end
+        last = Kigo.eval(form, Environment.top_level)
       end
     end
     last
@@ -60,8 +56,8 @@ module Kigo
         eval_definition(form, env)
       when :set!
         eval_assignment(form, env)
-      when :fn
-        eval_function(form, env)
+      when :lambda
+        eval_lambda(form, env)
       when :cond
         eval_cond(form, env)
       when :macro
@@ -121,7 +117,7 @@ module Kigo
     res.subject
   end
 
-  def eval_function(form, env)
+  def eval_lambda(form, env)
     Lambda.new(form.next.first, form.next.next, env)
   end
 
@@ -130,11 +126,18 @@ module Kigo
   end
 
   def eval_cond(form, env)
+    return nil if form.next.nil?
     raise "cond should have an even number of elements" if form.next.count.odd?
 
+    result = nil
     form.next.each_slice(2) do |(predicate, consequent)|
-
+      if predicate == :else or Kigo.eval(predicate, env)
+        result = Kigo.eval(consequent, env)
+        break
+      end
     end
+
+    result
   end
 
   def eval_application(form, env)
@@ -300,15 +303,22 @@ module Kigo
   end
 
   CORE_FUNCTIONS = {
-    :+   => ->(*args) { args.sum },
-    :-   => ->(a, b) { a - b },
-    :*   => ->(a, b) { a * b },
-    :/   => ->(a, b) { a / b },
-    :<   => ->(a, b) { a < b },
-    :>   => ->(a, b) { a > b },
-    :>=  => ->(a, b) { a >= b },
-    :<=  => ->(a, b) { a <= b },
-    :'=' => ->(a, b) { a == b },
+    :+    => ->(*args) { args.sum },
+    :-    => ->(a, b) { a - b },
+    :*    => ->(a, b) { a * b },
+    :/    => ->(a, b) { a / b },
+    :<    => ->(a, b) { a < b },
+    :>    => ->(a, b) { a > b },
+    :>=   => ->(a, b) { a >= b },
+    :<=   => ->(a, b) { a <= b },
+    :'='  => ->(a, b) { a == b },
+    :'==' => ->(a, b) { a === b },
+
+    # OOP
+    :isa?   => ->(object, klass) { object.is_a?(klass) },
+    :class  => ->(object) { object.class },
+    :send   => ->(object, method, *args) { object.send(method, *args) },
+    :method => ->(object, name) { object.method(name) },
 
     # Array
     :array => ->(*args) { args },
@@ -317,7 +327,8 @@ module Kigo
     :'hash' => ->(*args) { args.each_slice(2).to_h },
 
     # Set
-    :set => ->(*args) { Set.new(args) },
+    :set          => ->(*args) { Set.new(args) },
+    :'sorted-set' => ->(*args) { SortedSet.new(args) },
 
     # lists
     :list  => ->(*args) { Cons[*args] },
@@ -488,18 +499,12 @@ module Kigo
 
       array = []
       first_line = line
-      while true
-        next_token! while whitespace?(current_token)
-
-        if current_token == CLOSE_PAREN
-          next_token!
-          break
-        end
-
-        raise "EOF while reading list, starting at: #{first_line}" if current_token.nil?
-
+      until current_token == CLOSE_PAREN or eof?
         array << self.next!
+        next_token! while whitespace?(current_token)
+        raise "EOF while reading list, starting at: #{first_line}" if current_token.nil?
       end
+      next_token!
 
       Cons[*array]
     end
