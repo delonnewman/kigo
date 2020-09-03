@@ -1,16 +1,21 @@
 # froze_string_literal: true
+require 'set'
 require 'singleton'
 
 module Kigo
   extend self
 
-  def eval_string(string)
+  RuntimeError  = Class.new(::RuntimeError)
+  ArgumentError = Class.new(RuntimeError)
+  SyntaxError   = Class.new(RuntimeError)
+
+  def eval_string(string, env = Environment.top_level)
     last = nil
     Reader.new(string).tap do |r|
       until r.eof?
         form = r.next!
         next if form == r
-        last = Kigo.eval(form, Environment.top_level)
+        last = Kigo.eval(form, env)
       end
     end
     last
@@ -36,7 +41,23 @@ module Kigo
     array
   end
 
+  SPECIAL_FORMS = Set[:def, :quote, :set!, :send, :cond, :lambda, :macro].freeze
+
+  def macroexpand1(form, env = Environment.top_level)
+    if Cons === form && !SPECIAL_FORMS.include?(form.first)
+      value = eval(form.first, env)
+      if Macro === value
+        value.call(form, env, *form.next.to_a)
+      else
+        form
+      end
+    else
+      form
+    end
+  end
+
   def eval(form, env = Environment.top_level)
+    form = macroexpand1(form, env)
     case form
     when String, Numeric, true, false, nil
       form
@@ -150,8 +171,6 @@ module Kigo
     result
   end
 
-  ArgumentError = Class.new(::RuntimeError)
-
   def eval_send(form, env)
     raise ArgumentError, "wrong number of arugments got #{form.count - 1}, expected 2 or 3" if form.count < 3
 
@@ -166,7 +185,7 @@ module Kigo
     callable = Kigo.eval(form.first, env)
     args     = form.next&.map { |x| Kigo.eval(x, env) } || []
 
-    raise "Invalid execution context for macros" if Macro === callable
+    raise SyntaxError, "invalid execution context for macros" if Macro === callable
 
     return callable[*args]          if callable.respond_to?(:[])
     return callable.include?(*args) if callable.respond_to?(:include?)
@@ -214,6 +233,7 @@ module Kigo
     def to_s
       Cons.new(:lambda, Cons.new(@arglist, Cons.new(@code, nil))).to_s
     end
+    alias inspect to_s
     
     def call(*args)
       scope = @env.branch
@@ -250,9 +270,18 @@ module Kigo
     end
   end
 
-  Macro = Class.new(Lambda)
+  class Macro < Lambda
+    def call(form, env, *args)
+      @env.define(:'*form*', form)
+      @env.define(:'*env*', env)
+      super(*args)
+    end
 
-  RuntimeError = Class.new(RuntimeError)
+    def to_s
+      Cons.new(:macro, Cons.new(@arglist, Cons.new(@code, nil))).to_s
+    end
+    alias inspect to_s
+  end
 
   class Environment
     attr_reader :variables, :parent
@@ -369,6 +398,8 @@ module Kigo
     :'='  => ->(a, b) { a == b },
     :'==' => ->(a, b) { a === b },
 
+    :eval => -> (form) { Kigo.eval(form) },
+
     # OOP
     :isa?       => ->(object, klass) { object.is_a?(klass) },
     :'class-of' => ->(object) { object.class },
@@ -431,16 +462,12 @@ module Kigo
     end
 
     def cons(x)
-      if empty?
-        self.class.new(x, nil, 1)
-      else
-        self.class.new(x, self, count + 1)
-      end
+      self.class.new(x, self, count + 1)
     end
 
     def each
       xs = self
-      until xs.nil?
+      until xs.empty?
         yield xs.car
         xs = xs.cdr
       end
@@ -451,8 +478,9 @@ module Kigo
     end
 
     def to_s
-      "(#{reduce(nil) { |str, x| str.nil? ? x.to_s : "#{str} #{x}" }})"
+      "(#{reduce(nil) { |str, x| str.nil? ? x.inspect : "#{str} #{x.inspect}" }})"
     end
+    alias inspect to_s
 
     alias first car
     alias next cdr
@@ -685,7 +713,7 @@ module Kigo
   end
 end
 
-Kigo.eval_file('core.kigo')
+Kigo.eval_file(File.join(__dir__, 'core.kigo'))
 
 #string = '"test" 1 + read * / @ ^hey (1 2 (3 4))'
 #

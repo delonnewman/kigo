@@ -5,6 +5,15 @@
   (lambda (x)
     (lambda () x)))
 
+(def add1
+  (lambda (x) (+ 1 x)))
+
+(def sub1
+  (lambda (x) (- x 1)))
+
+(def comment
+  (macro (*xs) nil))
+
 (def map
   (lambda (f col)
     (cond
