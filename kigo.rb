@@ -9,6 +9,7 @@ module Kigo
     Reader.new(string).tap do |r|
       until r.eof?
         form = r.next!
+        next if form == r
         last = Kigo.eval(form, Environment.top_level)
       end
     end
@@ -26,7 +27,11 @@ module Kigo
   def read_string(string)
     array = []
     Reader.new(string).tap do |r|
-      array << r.next! until r.eof?
+      until r.eof?
+        form = r.next!
+        next if form == r
+        array << form
+      end
     end
     array
   end
@@ -58,6 +63,8 @@ module Kigo
         eval_lambda(form, env)
       when :cond
         eval_cond(form, env)
+      when :send
+        eval_send(form, env)
       when :macro
         eval_macro(form, env)
       else
@@ -136,6 +143,18 @@ module Kigo
     end
 
     result
+  end
+
+  ArgumentError = Class.new(::RuntimeError)
+
+  def eval_send(form, env)
+    raise ArgumentError, "wrong number of arugments got #{form.count - 1}, expected 2 or 3" if form.count < 3
+
+    subject = Kigo.eval(form.next.first, env)
+    method  = Kigo.eval(form.next.next.first, env)
+    args    = (form.next.next.next&.to_a || []).map { |x| Kigo.eval(x, env) }
+
+    subject.send(method, *args)
   end
 
   def eval_application(form, env)
@@ -314,10 +333,9 @@ module Kigo
     :'==' => ->(a, b) { a === b },
 
     # OOP
-    :isa?   => ->(object, klass) { object.is_a?(klass) },
-    :class  => ->(object) { object.class },
-    :send   => ->(object, method, *args) { object.send(method, *args) },
-    :method => ->(object, name) { object.method(name) },
+    :isa?       => ->(object, klass) { object.is_a?(klass) },
+    :'class-of' => ->(object) { object.class },
+    :method     => ->(object, name) { object.method(name) },
 
     # Array
     :array => ->(*args) { args },
@@ -428,21 +446,24 @@ module Kigo
     def initialize(string)
       @tokens   = string.split('')
       @position = 0
-      @line     = 0
-      @column   = 0
+      @line     = 1
+      @column   = 1
     end
 
     def next!
-      return :eof if eof?
+      return self if eof?
 
       if whitespace?(current_token) # ignore whitespace
         next_token! while whitespace?(current_token)
       end
 
       if current_token == ';'
-        next_token! until current_token == "\n"
+        next_token! until current_token == NEWLINE or current_token == RETURN
         next_token!
-      elsif current_token == DOUBLE_QUOTE
+        return self
+      end
+
+      if current_token == DOUBLE_QUOTE
         next_token!
         read_string!
       elsif current_token =~ DIGIT_PAT
@@ -465,7 +486,7 @@ module Kigo
         next_token!
         read_hash!
       else
-        raise "Invalid token #{current_token.inspect} at line #{@line} column #{@position + 1}"
+        raise "Invalid token #{current_token.inspect} at line #{@line} column #{@column}"
       end
     end
 
@@ -499,12 +520,13 @@ module Kigo
     end
 
     def read_list!
-      return Cons.empty if next_token == CLOSE_PAREN
+      return Cons.empty if current_token == CLOSE_PAREN
 
       array = []
       first_line = line
       until current_token == CLOSE_PAREN or eof?
-        array << self.next!
+        value = self.next!
+        array << value
         next_token! while whitespace?(current_token)
         raise "EOF while reading list, starting at: #{first_line}" if current_token.nil?
       end
@@ -515,13 +537,15 @@ module Kigo
 
     def read_array!
       array = []
-      return array if next_token == CLOSE_BRACKET
+      return array if current_token == CLOSE_BRACKET
 
       next_token! while whitespace?(current_token)
 
+      first_line = line
       until current_token == CLOSE_BRACKET or eof?
         array << self.next!
         next_token! while whitespace?(current_token)
+        raise "EOF while reading array, starting at: #{first_line}" if current_token.nil?
       end
       next_token!
 
@@ -529,14 +553,16 @@ module Kigo
     end
 
     def read_hash!
-      return {} if next_token == CLOSE_BRACE
+      return {} if current_token == CLOSE_BRACE
 
       next_token! while whitespace?(current_token)
 
       array = []
+      first_line = line
       until current_token == CLOSE_BRACE or eof?
         array << self.next!
         next_token! while whitespace?(current_token)
+        raise "EOF while reading hash, starting at: #{first_line}" if current_token.nil?
       end
       next_token!
 
@@ -581,12 +607,18 @@ module Kigo
     def next_token!
       if current_token == NEWLINE
         @line   += 1
-        @column  = 0
+        @column  = 1
       else
         @column += 1
       end
 
       @position += 1
+
+      self
+    end
+
+    def prev_token
+      @tokens[@position - 1]
     end
 
     def next_token
@@ -628,14 +660,14 @@ Kigo.eval_file('core.kigo')
 #  end
 #end
 
-class Person
-  attr_reader :attributes
-
-  def initialize(attributes = {})
-    @attributes = attributes
-  end
-
-  def name=(name)
-    @attributes[:name] = name
-  end
-end
+#class Person
+#  attr_reader :attributes
+#
+#  def initialize(attributes = {})
+#    @attributes = attributes
+#  end
+#
+#  def name=(name)
+#    @attributes[:name] = name
+#  end
+#end
