@@ -123,7 +123,12 @@ module Kigo
   end
 
   def eval_lambda(form, env)
-    Lambda.new(form.next.first, form.next.next, env)
+    raise ArgumentError, "wrong number of arguments expected 1 or more got #{form.count}" if form.count < 2
+
+    arglist = form.next.first
+    body    = form.next.next || Cons.empty
+
+    Lambda.new(arglist, body, env)
   end
 
   def eval_macro(form, env)
@@ -183,6 +188,10 @@ module Kigo
       @env     = env
     end
 
+    def to_s
+      "#{@subject}.#{@method}"
+    end
+
     def subject
       @subject_value ||= @env.lookup_value!(@subject)
     end
@@ -193,16 +202,28 @@ module Kigo
   end
 
   class Lambda
+    attr_reader :arity
+
     def initialize(args, code, env)
-      @args = args
+      @arglist = args
       @code = code
       @env  = env
+      parse_arguments!
+    end
+
+    def to_s
+      Cons.new(:lambda, Cons.new(@arglist, Cons.new(@code, nil))).to_s
     end
     
     def call(*args)
       scope = @env.branch
       @args.each_with_index do |arg, i|
-        scope.define(arg, args[i])
+        if arity < 0 && arity.abs == i + 1
+          scope.define(arg, Cons[*args[i, args.length]])
+          break
+        else
+          scope.define(arg, args[i])
+        end
       end
 
       value = nil
@@ -210,6 +231,22 @@ module Kigo
         value = Kigo.eval(form, scope)
       end
       value
+    end
+
+    private
+
+    def parse_arguments!
+      @arity = 0
+      @args = @arglist.map do |arg|
+        raise SyntaxError, "unexpected #{arg.class}, expecting symbol" unless Symbol === arg
+        @arity += 1
+        if arg.to_s.start_with?('*')
+          @arity *= -1
+          arg[1, arg.length - 1].to_sym
+        else
+          arg
+        end
+      end
     end
   end
 
@@ -520,7 +557,10 @@ module Kigo
     end
 
     def read_list!
-      return Cons.empty if current_token == CLOSE_PAREN
+      if current_token == CLOSE_PAREN
+        next_token!
+        return Cons.empty
+      end
 
       array = []
       first_line = line
@@ -537,7 +577,10 @@ module Kigo
 
     def read_array!
       array = []
-      return array if current_token == CLOSE_BRACKET
+      if current_token == CLOSE_BRACKET
+        next_token!
+        return array
+      end
 
       next_token! while whitespace?(current_token)
 
@@ -553,7 +596,10 @@ module Kigo
     end
 
     def read_hash!
-      return {} if current_token == CLOSE_BRACE
+      if current_token == CLOSE_BRACE
+        next_token!
+        return {}
+      end
 
       next_token! while whitespace?(current_token)
 
