@@ -178,8 +178,13 @@ module Kigo
     subject = Kigo.eval(form.next.first, env)
     method  = Kigo.eval(form.next.next.first, env)
     args    = (form.next.next.next&.to_a || []).map { |x| Kigo.eval(x, env) }
+    last    = args.last
 
-    subject.send(method, *args)
+    if last.respond_to?(:to_proc)
+      subject.send(method, *args.take(args.size - 1), &last)
+    else
+      subject.send(method, *args)
+    end
   end
 
   def eval_application(form, env)

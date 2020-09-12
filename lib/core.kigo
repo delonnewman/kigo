@@ -73,6 +73,7 @@
 
 (def rational?
   (lambda (x) (send x :is_a? Rational)))
+
 (def ->string
   (lambda (x) (send x :to_s)))
 
