@@ -1,6 +1,7 @@
 # froze_string_literal: true
 require 'set'
 require 'singleton'
+require 'stringio'
 
 module Kigo
   extend self
@@ -231,7 +232,7 @@ module Kigo
     end
 
     def to_s
-      Cons.new(:lambda, Cons.new(@arglist, Cons.new(@code, nil))).to_s
+      Cons.new(:lambda, Cons.new(@arglist, Cons.new(@code, Cons.empty))).to_s
     end
     alias inspect to_s
     
@@ -251,6 +252,12 @@ module Kigo
         value = Kigo.eval(form, scope)
       end
       value
+    end
+
+    def to_proc
+      lambda do |*args|
+        call(*args)
+      end
     end
 
     private
@@ -278,7 +285,7 @@ module Kigo
     end
 
     def to_s
-      Cons.new(:macro, Cons.new(@arglist, Cons.new(@code, nil))).to_s
+      Cons.new(:macro, Cons.new(@arglist, Cons.new(@code, Cons.empty))).to_s
     end
     alias inspect to_s
   end
@@ -334,7 +341,9 @@ module Kigo
     include Singleton
 
     def lookup_value!(symbol)
-      Object.const_get(symbol)
+      symbol.to_s.split('::').reduce(Object) do |const, name|
+        const.const_get(name.to_sym)
+      end
     end
 
     def lookup!(symbol)
@@ -363,8 +372,9 @@ module Kigo
 
   def self.cons(x, xs)
     return Cons.empty.cons(x) if xs.nil? or xs.empty?
+    return xs.cons(x)         if xs.respond_to?(:cons)
 
-    xs.cons(x)
+    Cons[*xs.to_a].cons(x)
   end
 
   def self.first(xs)
@@ -398,7 +408,8 @@ module Kigo
     :'='  => ->(a, b) { a == b },
     :'==' => ->(a, b) { a === b },
 
-    :eval => -> (form) { Kigo.eval(form) },
+    :macroexpand1 => ->(form) { Kigo.macroexpand1(form) }, 
+    :eval => ->(form) { Kigo.eval(form) },
 
     # OOP
     :isa?       => ->(object, klass) { object.is_a?(klass) },
@@ -425,7 +436,9 @@ module Kigo
     :empty? => ->(xs) { xs.empty? },
 
     # IO
-    :puts => ->(*args) { puts *args }
+    :puts => ->(*args) { puts *args },
+    :p    => ->(*args) { p *args },
+    :pp   => ->(*args) { pp *args }
   }
 
   CORE_FUNCTIONS.each do |name, value|
@@ -461,6 +474,9 @@ module Kigo
       @count = count
     end
 
+    alias :size :count
+    alias :length :count
+
     def cons(x)
       self.class.new(x, self, count + 1)
     end
@@ -476,6 +492,10 @@ module Kigo
     def empty?
       car.nil? && cdr.nil?
     end
+  
+    def join(delimiter)
+      reduce(nil) { |str, x| str.nil? ? x.to_s : "#{str}#{delimiter}#{x}" }
+    end
 
     def to_s
       "(#{reduce(nil) { |str, x| str.nil? ? x.inspect : "#{str} #{x.inspect}" }})"
@@ -490,7 +510,7 @@ module Kigo
     attr_reader :line
 
     START_SYMBOL_PAT = /[A-Za-z_\-\*\/\+\&\=\?\^\<\>\%\$\#\@\!\.]/.freeze
-    SYMBOL_PAT       = /[A-Za-z0-9_\-\*\/\+\&\=\?\^\<\>\%\$\#\@\!\.]/.freeze
+    SYMBOL_PAT       = /[A-Za-z0-9_\-\*\/\+\&\=\?\^\<\>\%\$\#\@\!\.\:]/.freeze
     DIGIT_PAT        = /\d/.freeze
     DOUBLE_QUOTE     = '"'
     OPEN_PAREN       = '('
