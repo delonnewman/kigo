@@ -15,6 +15,9 @@ else
         puts "=> #{result.inspect}"
       rescue => e
         puts "#{e.class}: #{e.message}"
+        e.backtrace.each do |trace|
+          puts "  #{trace}"
+        end
       end
     end
   end
