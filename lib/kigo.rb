@@ -177,7 +177,7 @@ module Kigo
 
     subject = Kigo.eval(form.next.first, env)
     method  = Kigo.eval(form.next.next.first, env)
-    args    = (form.next.next.next&.to_a || []).map { |x| Kigo.eval(x, env) }
+    args    = parse_args(form.next.next.next || [], env)
     last    = args.last
 
     if last.respond_to?(:to_proc)
@@ -187,9 +187,20 @@ module Kigo
     end
   end
 
+  def parse_args(list, env)
+    args = list.flat_map do |x|
+      str = x.to_s
+      if str.start_with?('*')
+        Kigo.eval(str[1, str.length].to_sym, env).map { |x| { value: x } }
+      else
+        { value: Kigo.eval(x, env) }
+      end
+    end.map { |x| x[:value] }
+  end
+
   def eval_application(form, env)
     callable = Kigo.eval(form.first, env)
-    args     = form.next&.map { |x| Kigo.eval(x, env) } || []
+    args     = parse_args(form.next || [], env)
 
     raise SyntaxError, "invalid execution context for macros" if Macro === callable
 
