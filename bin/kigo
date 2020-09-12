@@ -1,20 +1,19 @@
 #!/usr/bin/env ruby
 require_relative '../lib/kigo'
+require 'readline'
 
 if ARGV.count == 1
   Kigo.eval_file(ARGV.first)
 else
   env = Kigo::Environment.top_level
-  loop do
-    print "kigo> "
-    str = gets.chomp
+  while (str = Readline.readline("kigo> ", true))
     if str == 'exit'
       exit 1
     else
       begin
         result = Kigo.eval_string(str, env)
         puts "=> #{result.inspect}"
-      rescue Kigo::RuntimeError => e
+      rescue => e
         puts "#{e.class}: #{e.message}"
       end
     end
