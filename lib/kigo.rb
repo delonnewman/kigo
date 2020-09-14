@@ -387,29 +387,37 @@ module Kigo
   end
 
   def self.cons(x, xs)
-    return Cons.empty.cons(x) if xs.nil? or xs.empty?
+    return Cons.empty.cons(x) if xs.nil?
     return xs.cons(x)         if xs.respond_to?(:cons)
 
     Cons[*xs.to_a].cons(x)
   end
 
   def self.first(xs)
-    return nil if xs.nil? or xs.empty?
+    return nil if xs.nil?
 
     xs.first
   end
 
   def self.next(xs)
-    return nil     if xs.nil? or xs.empty?
+    return nil     if xs.nil?
+    return nil     if xs.respond_to?(:empty?) && xs.empty?
     return xs.next if Cons === xs
 
-    xs.drop(1)
+    value = xs.drop(1)
+    return nil if value.empty?
+
+    value
   end
 
   def self.rest(xs)
-    return Cons.empty if xs.nil? or xs.empty?
+    return Cons.empty if xs.nil?
+    return Cons.empty if xs.respond_to?(:empty?) && xs.empty?
 
-    self.next(xs)
+    value = self.next(xs)
+    return Cons.empty if value.nil?
+
+    value
   end
 
   CORE_FUNCTIONS = {

@@ -138,16 +138,11 @@
           (cons x new-col)
           else new-col)) (rest col) (first col))))
 
-(def range-1
-  (lambda (start stop step)
-    (cond (>= start stop) '()
-          else (cons start (range-1 (+ step start) stop step)))))
-
 (def range
   (lambda (*args)
-     (cond (= 1 (size args)) (range-1 0 (first args) 1)
-           (= 2 (size args)) (range-1 (first args) (second args) 1)
-           (= 3 (size args)) (range-1 (first args) (second args) (third args))
+     (cond (= 1 (size args)) (Range.new 0 (first args))
+           (= 2 (size args)) (Range.new (first args) (second args) 1)
+           (= 3 (size args)) (send (Range.new (first args) (second args)) :step (third args))
            else (Kernel.raise ArgumentError (str "wrong number of arguments expected 1, 2 or 3 got " (size args))))))
 
 (def format
