@@ -12,6 +12,10 @@ module Kigo
   ArgumentError = Class.new(RuntimeError)
   SyntaxError   = Class.new(RuntimeError)
 
+  def current_module
+    @current_module ||= Var.new(Kigo::Core, dynamic: true)
+  end
+
   def eval_string(string, env = Environment.top_level)
     last = nil
     Reader.new(string).tap do |r|
@@ -25,7 +29,7 @@ module Kigo
   end
 
   def eval_file(file)
-    eval_string(IO.read(file))
+    eval_string(IO.read(file, encoding: 'UTF-8'))
   end
 
   def read(string)
@@ -44,7 +48,7 @@ module Kigo
     array
   end
 
-  SPECIAL_FORMS = Set[:def, :quote, :set!, :send, :cond, :lambda, :macro].freeze
+  SPECIAL_FORMS = Set[:def, :quote, :send, :set!, :cond, :lambda, :macro].freeze
 
   def macroexpand1(form, env = Environment.top_level)
     if Cons === form && !SPECIAL_FORMS.include?(form.first)
@@ -148,7 +152,16 @@ module Kigo
     value   = form.next.next&.first
 
     string = subject.to_s
-    return env.lookup!(subject).define(value) unless string.include?(Reader::PERIOD)
+    unless string.include?(Reader::PERIOD)
+      scope = env.lookup!(subject)
+      val   = scope.value(subject)
+
+      if val.respond_to?(:set!)
+        return val.set!(value)
+      else
+        return scope.define(subject, value)
+      end
+    end
 
     res = MethodDispatch.parse(subject.to_s, env)
     res.subject.send(:"#{res.method}=", value)
@@ -191,7 +204,7 @@ module Kigo
     args    = parse_args(form.next.next.next || [], env)
     last    = args.last
 
-    if last.respond_to?(:to_proc)
+    if Lambda === last
       subject.send(method, *args.take(args.size - 1), &last)
     else
       subject.send(method, *args)
@@ -199,7 +212,7 @@ module Kigo
   end
 
   def parse_args(list, env)
-    args = list.flat_map do |x|
+    list.flat_map do |x|
       str = x.to_s
       if str.start_with?('*')
         Kigo.eval(str[1, str.length].to_sym, env).map { |x| { value: x } }
@@ -215,10 +228,7 @@ module Kigo
 
     raise SyntaxError, "invalid execution context for macros" if Macro === callable
 
-    return callable[*args]          if callable.respond_to?(:[])
-    return callable.include?(*args) if callable.respond_to?(:include?)
-
-    callable.call(*args)
+    Kigo.apply(callable, args)
   end
 
   class MethodDispatch
@@ -246,6 +256,31 @@ module Kigo
     def call(*args)
       subject.send(method, *args)
     end
+  end
+
+  class Var
+    attr_reader :value
+
+    def initialize(value = nil, dynamic: false)
+      @value   = value
+      @dynamic = dynamic
+    end
+
+    def dynamic?
+      @dynamic
+    end
+
+    def set!(value)
+      if @value.nil? or dynamic?
+        @value = value
+      end
+      self
+    end
+
+    def to_s
+      "#<Var #{value.inspect}>"
+    end
+    alias inspect to_s
   end
 
   class Lambda
@@ -282,8 +317,13 @@ module Kigo
     end
 
     def to_proc
+      l = self
       lambda do |*args|
-        call(*args)
+        if l.arity > 0 && args.size != l.arity
+          raise ArgumentError, "wrong number of arguments expected #{l.arity}, got #{args.size}"
+        end
+
+        l.call(*args)
       end
     end
 
@@ -362,6 +402,11 @@ module Kigo
 
       lookup!(symbol).value(symbol)
     end
+
+    def to_s
+      "#<Environment variables: #{@variables.keys.join(', ')} parent: #{@parent.inspect}>"
+    end
+    alias inspect to_s
   end
 
   class RubyEnvironment < Environment
@@ -373,6 +418,8 @@ module Kigo
         string.split('::').reduce(Object) do |const, name|
           const.const_get(name.to_sym)
         end
+      #elsif (method = Kigo.current_module.method(symbol))
+      #  method
       else
         Kigo::Core.method(symbol)
       end
@@ -461,7 +508,7 @@ module Kigo
     end
 
     def to_s
-      "(#{reduce(nil) { |str, x| str.nil? ? x.inspect : "#{str} #{x.inspect}" }})"
+      "(#{map(&:inspect).join(' ')})"
     end
     alias inspect to_s
 
@@ -696,7 +743,7 @@ module Kigo
   end
 end
 
-Kigo::Environment.top_level.define(:'*module*', Kigo::Core)
+Kigo::Environment.top_level.define(:'*module*', Kigo.current_module)
 Kigo.eval_file(File.join(__dir__, 'core.kigo'))
 
 #string = '"test" 1 + read * / @ ^hey (1 2 (3 4))'

@@ -6,7 +6,11 @@ if ARGV.count == 1
   Kigo.eval_file(ARGV.first)
 else
   env = Kigo::Environment.top_level
-  while (str = Readline.readline("kigo> ", true))
+  module Kigo
+    Scratch = Module.new
+  end
+  Kigo.current_module.set!(Kigo::Scratch)
+  while (str = Readline.readline("#{Kigo.current_module.value}> ", true))
     if str == 'exit'
       exit 1
     else

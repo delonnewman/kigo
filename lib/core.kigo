@@ -1,3 +1,15 @@
+(def eval
+  (lambda (form) (Kigo.eval form)))
+
+(def read-string
+  (lambda (string) (Kigo.read_string string)))
+
+(def load
+  (lambda (file) (Kigo.eval_file file)))
+
+(def macroexpand1
+  (lambda (form) (Kigo.macroexpand1 form)))
+
 (def identity
   (lambda (x) x))
 
@@ -47,6 +59,9 @@
 
 (def class-of
   (lambda (object) (send object :class)))
+
+(def class
+  (lambda (*body)))
 
 (def set
   (lambda (*args) (Set.new args)))

@@ -2,6 +2,10 @@ module Kigo
   module Core
     module_function
 
+    def symbol(name)
+      name.to_sym
+    end
+
     def cons(x, xs)
       return Cons.empty.cons(x) if xs.nil?
       return xs.cons(x)         if xs.respond_to?(:cons)
