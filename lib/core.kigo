@@ -11,6 +11,56 @@
       (f x)
       x)))
 
+(def +
+  (lambda (*args) (send args :sum)))
+
+(def -
+  (lambda (a b) (send a :- b)))
+
+(def *
+  (lambda (a b) (send a :* b)))
+
+(def /
+  (lambda (a b) (send a :/ b)))
+
+(def <
+  (lambda (a b) (send a :< b)))
+
+(def >
+  (lambda (a b) (send a :> b)))
+
+(def <=
+  (lambda (a b) (send a :<= b)))
+
+(def >=
+  (lambda (a b) (send a :>= b)))
+
+(def =
+  (lambda (a b) (send a :== b)))
+
+(def ==
+  (lambda (a b) (send a :=== b)))
+
+(def isa?
+  (lambda (object class)
+    (send object :is_a? class)))
+
+(def class-of
+  (lambda (object) (send object :class)))
+
+(def set
+  (lambda (*args) (Set.new args)))
+
+(def sorted-set
+  (lambda (*args) (SortedSet.new args)))
+
+(def list
+  (lambda (*args) (Kigo::Cons *args)))
+
+(def for
+  (macro (bindings *body)
+    (list 'send (second bindings) :each (cons 'lambda (cons (list (first bindings)) body)))))
+
 (def add1
   (lambda (x) (+ 1 x)))
 

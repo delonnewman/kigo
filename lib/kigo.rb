@@ -99,6 +99,15 @@ module Kigo
     end
   end
 
+  def apply(callable, args)
+    args = args.to_a
+    
+    return callable[*args]          if callable.respond_to?(:[])
+    return callable.include?(*args) if callable.respond_to?(:include?)
+
+    callable.call(*args)
+  end
+
   private
 
   def eval_array(form, env)
@@ -359,8 +368,13 @@ module Kigo
     include Singleton
 
     def lookup_value!(symbol)
-      symbol.to_s.split('::').reduce(Object) do |const, name|
-        const.const_get(name.to_sym)
+      string = symbol.to_s
+      if constant?(string)
+        string.split('::').reduce(Object) do |const, name|
+          const.const_get(name.to_sym)
+        end
+      else
+        Kigo::Core.method(symbol)
       end
     end
 
@@ -385,6 +399,12 @@ module Kigo
     def define(symbol, value)
       # TODO: we may want to permit this
       raise "Cannot define new variables in Ruby Environment"
+    end
+
+    private
+
+    def constant?(str)
+      str[0].upcase == str[0]
     end
   end
 
