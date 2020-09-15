@@ -59,7 +59,7 @@
 
 (def for
   (macro (bindings *body)
-    (list 'send (second bindings) :each (cons 'lambda (cons (list (first bindings)) body)))))
+    (list 'send (second bindings) :map (cons 'lambda (cons (list (first bindings)) body)))))
 
 (def add1
   (lambda (x) (+ 1 x)))
