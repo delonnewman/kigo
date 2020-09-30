@@ -4,6 +4,7 @@ require 'singleton'
 require 'stringio'
 
 require_relative 'kigo/core'
+require_relative 'kigo/evaluator'
 
 module Kigo
   extend self
@@ -11,6 +12,7 @@ module Kigo
   RuntimeError  = Class.new(::RuntimeError)
   ArgumentError = Class.new(RuntimeError)
   SyntaxError   = Class.new(RuntimeError)
+  TypeError     = Class.new(RuntimeError)
 
   def current_module
     @current_module ||= Var.new(Kigo::Core, dynamic: true)
