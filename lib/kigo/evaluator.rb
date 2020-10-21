@@ -1,15 +1,15 @@
+# frozen_string_literal: true
 require 'forwardable'
 
 module Kigo
   class Evaluator
-    attr_reader :form, :env
+    attr_reader :env
 
-    def initialize(form, env = Environment.top_level)
-      @form = form
-      @env  = env
+    def initialize(env = Environment.top_level)
+      @env = env
     end
 
-    def evaluate
+    def evaluate(form)
       case form
       when String, Numeric, true, false, nil
         form
@@ -26,7 +26,7 @@ module Kigo
       when Cons
         return Cons.empty if form.empty?
         if (evaluator = Syntax.forms[form.first])
-          evaluator.new(self, form).tap(&:validate!).evaluate
+          evaluator.parse(form).evaluate(env)
         else
           eval_application(form, env)
         end
@@ -63,17 +63,22 @@ module Kigo
       raise SyntaxError, "invalid execution context for macros" if Macro === callable
   
       Kigo.apply(callable, args)
-    end  
+    end
+
+    def parse_args(list, env)
+      list.flat_map do |x|
+        str = x.to_s
+        if str.start_with?('*')
+          Kigo.eval(str[1, str.length].to_sym, env).map { |x| { value: x } }
+        else
+          { value: Kigo.eval(x, env) }
+        end
+      end.map { |x| x[:value] }
+    end
 
     public
 
     class Syntax
-      extend Forwardable
-
-      def_delegator :@evaluator, :env
-
-      attr_reader :evaluator
-
       def self.tag(name = self.to_s.split('::').last.downcase.to_sym)
         @tag ||= name
       end
@@ -86,12 +91,7 @@ module Kigo
         forms[subclass.tag] = subclass if subclass.tag
       end
 
-      def initialize(evaluator, form)
-        @form      = form
-        @evaluator = evaluator
-      end
-
-      def evaluate
+      def evaluate(env)
         raise "Not implemented"
       end
 
@@ -108,44 +108,67 @@ module Kigo
     end
 
     class Quote < Syntax
-      def validate!
+      attr_reader :form
+
+      def self.parse(form)
         if form.size != 1
-          raise ArgumentError, "wrong number of arguments expcted 1 got #{form.size - 1}"
+          raise ArgumentError, "wrong number of arguments expected 1 got #{form.size - 1}"
         end
+
+        new(form[1])
       end
 
-      def evaluate
-        form.next.first
+      def initialize(form)
+        @form = form
+      end
+
+      def evaluate(env)
+        form
       end
     end
 
     class Def < Syntax
-      def validate!
+      attr_reader :name, :value
+
+      def self.parse(form)
         if form.size < 2 or form.size > 3
           raise ArgumentError, "wrong number of arguments expcted 1 or 2 got #{form.size - 1}"
         end
+
+        new(form[1], form[2])
       end
 
-      def evaluate
-        env.define(form.next.first, form.next.next.first)
+      def initialize(name, value)
+        @name  = name
+        @value = value
+      end
+
+      def evaluate(env)
+        env.define(name, value)
       end
     end
 
     class Assignment < Syntax
       tag :set!
 
-      def validate!
-        if form.size != 2
-          raise ArgumentError, "wrong number of arguments expcted 2 got #{form.size - 1}"
+      attr_reader :subject, :value
+
+      def self.parse(form)
+        if form.size != 3
+          raise ArgumentError, "wrong number of arguments expected 2 got #{form.size - 1}"
         end
+
+        new(form[1], form[2])
       end
 
-      def evaluate
-        subject = form.next.first
-        value   = form.next.next&.first
+      def initialize(subject, value)
+        @subject = subject
+        @value   = value
+      end
 
+      def evaluate(env)
         string = subject.to_s
-        unless string.include?(Reader::PERIOD)
+        unless string.include?('.')
           scope = env.lookup!(subject)
           val   = scope.value(subject)
 
@@ -163,28 +186,44 @@ module Kigo
     end
 
     class Lambda < Syntax
-      def validate!
+      attr_reader :arglist, :body
+
+      def self.parse(form)
         raise ArgumentError, "wrong number of arguments expected 1 or more got #{form.count}" if form.count < 2
+        
+        new(form[1], form.next.next)
       end
 
-      def evaluate
-        arglist = form.next.first
-        body    = form.next.next || Cons.empty
+      def initialize(arglist, body)
+        @arglist = arglist
+        @body = body || Cons.empty
+      end
 
+      def evaluate(env)
+        # TODO: add some syntatic analysis
         Kigo::Lambda.new(arglist, body, env)
       end
     end
 
     class Cond < Syntax
-      def validate!
+      attr_reader :expressions
+
+      def self.parse(form)
         raise "cond should have an even number of elements" if form.next.count.odd?
+        
+        new(form.next)
       end
 
-      def evaluate
-        return nil if form.next.nil?
+      def initialize(expressions)
+        @expressions = expressions
+      end
+
+      def evaluate(env)
+        return nil if expressions.nil?
 
         result = nil
-        form.next.each_slice(2) do |(predicate, consequent)|
+
+        expressions.each_slice(2) do |(predicate, consequent)|
           if predicate == :else or Kigo.eval(predicate, env)
             result = Kigo.eval(consequent, env)
             break
@@ -196,20 +235,30 @@ module Kigo
     end
 
     class Send < Syntax
-      def validate!
+      attr_reader :subject, :method, :args
+
+      def self.parse(form)
         raise ArgumentError, "wrong number of arugments got #{form.count - 1}, expected 2 or 3" if form.count < 3
+        
+        new(form[1], form[2], form.next.next.next)
       end
 
-      def evaluate
-        subject = Kigo.eval(form.next.first, env)
-        method  = Kigo.eval(form.next.next.first, env)
-        args    = parse_args(form.next.next.next || [], env)
-        last    = args.last
+      def initialize(subject, method, args)
+        @subject = subject
+        @method  = method
+        @args    = args
+      end
+
+      def evaluate(env)
+        subject_ = Kigo.eval(subject, env)
+        method_  = Kigo.eval(method, env)
+        args_    = parse_args(args || [], env)
+        last     = args_.last
 
         if Lambda === last
-          subject.send(method, *args.take(args.size - 1), &last)
+          subject_.send(method_, *args_.take(args_.size - 1), &last)
         else
-          subject.send(method, *args)
+          subject_.send(method_, *args_)
         end
       end
     end
@@ -217,10 +266,11 @@ module Kigo
     class Macro < Syntax
       tag nil
 
-      def validate!
+      def self.parse(form)
+        new()
       end
 
-      def evaluate
+      def evaluate(env)
         env.define(:'*env*', env)
         env.define(:'*form*', form)
         call(*form.to_a)
