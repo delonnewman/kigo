@@ -1,9 +1,10 @@
+# frozen_string_literal: true
 module Kigo
   class MethodDispatch
     attr_reader :method
 
     def self.parse(string, env)
-      subject, method = string.split(Reader::PERIOD)
+      subject, method = string.split('.')
       new(subject.to_sym, method.to_sym, env)
     end
 
