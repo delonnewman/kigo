@@ -4,7 +4,12 @@ require 'singleton'
 require 'stringio'
 
 require_relative 'kigo/core'
+require_relative 'kigo/var'
 require_relative 'kigo/cons'
+require_relative 'kigo/keyword'
+require_relative 'kigo/lambda'
+require_relative 'kigo/macro'
+require_relative 'kigo/method_dispatch'
 require_relative 'kigo/reader'
 require_relative 'kigo/environment'
 require_relative 'kigo/evaluator'
@@ -234,140 +239,6 @@ module Kigo
     raise SyntaxError, "invalid execution context for macros" if Macro === callable
 
     Kigo.apply(callable, args)
-  end
-
-  class MethodDispatch
-    attr_reader :method
-
-    def self.parse(string, env)
-      subject, method = string.split(Reader::PERIOD)
-      new(subject.to_sym, method.to_sym, env)
-    end
-
-    def initialize(subject, method, env)
-      @subject = subject
-      @method  = method
-      @env     = env
-    end
-
-    def to_s
-      "#{@subject}.#{@method}"
-    end
-
-    def subject
-      @subject_value ||= @env.lookup_value!(@subject)
-    end
-
-    def call(*args)
-      subject.send(method, *args)
-    end
-  end
-
-  class Var
-    attr_reader :value
-
-    def initialize(value = nil, dynamic: false)
-      @value   = value
-      @dynamic = dynamic
-    end
-
-    def dynamic?
-      @dynamic
-    end
-
-    def set!(value)
-      if @value.nil? or dynamic?
-        @value = value
-      end
-      self
-    end
-
-    def to_s
-      "#<Var #{value.inspect}>"
-    end
-    alias inspect to_s
-  end
-
-  class Lambda
-    attr_reader :arity
-
-    def initialize(args, code, env)
-      @arglist = args
-      @code = code
-      @env  = env
-      parse_arguments!
-    end
-
-    def to_s
-      Cons.new(:lambda, Cons.new(@arglist, Cons.new(@code, Cons.empty))).to_s
-    end
-    alias inspect to_s
-    
-    def call(*args)
-      scope = @env.branch
-      @args.each_with_index do |arg, i|
-        if arity < 0 && arity.abs == i + 1
-          scope.define(arg, Cons[*args[i, args.length]])
-          break
-        else
-          scope.define(arg, args[i])
-        end
-      end
-
-      value = nil
-      @code.each do |form|
-        value = Kigo.eval(form, scope)
-      end
-      value
-    end
-
-    def to_proc
-      l = self
-      lambda do |*args|
-        if l.arity > 0 && args.size != l.arity
-          raise ArgumentError, "wrong number of arguments expected #{l.arity}, got #{args.size}"
-        end
-
-        l.call(*args)
-      end
-    end
-
-    private
-
-    def parse_arguments!
-      @arity = 0
-      @args = @arglist.map do |arg|
-        raise SyntaxError, "unexpected #{arg.class}, expecting symbol" unless Symbol === arg
-        @arity += 1
-        if arg.to_s.start_with?('*')
-          @arity *= -1
-          arg[1, arg.length - 1].to_sym
-        else
-          arg
-        end
-      end
-    end
-  end
-
-  class Macro < Lambda
-    def call(form, env, *args)
-      @env.define(:'*form*', form)
-      @env.define(:'*env*', env)
-      super(*args)
-    end
-
-    def to_s
-      Cons.new(:macro, Cons.new(@arglist, Cons.new(@code, Cons.empty))).to_s
-    end
-    alias inspect to_s
-  end
-
-  class Keyword
-    attr_reader :symbol
-
-    def initialize(symbol)
-      @symbol = symbol
-    end
   end
 end
 
