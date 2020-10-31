@@ -92,7 +92,7 @@ module Kigo
       return Cons.empty if form.empty?
       case form.first
       when :quote
-        form.next
+        form.next.first
       when :def
         eval_definition(form, env)
       when :set!

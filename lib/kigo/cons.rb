@@ -43,6 +43,14 @@ module Kigo
       cdr[n - 1]
     end
 
+    def ==(other)
+      return false unless Cons === other
+      return false unless count == other.count
+      return false unless car == other.car
+
+      cdr == other.cdr
+    end
+
     def empty?
       car.nil? && cdr.nil?
     end

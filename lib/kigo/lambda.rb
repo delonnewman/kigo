@@ -1,13 +1,15 @@
  module Kigo
   class Lambda
-    attr_reader :arity
+    attr_reader :arity, :arglist, :code, :env
 
     def initialize(args, code, env)
       @arglist = args
-      @code = code
-      @env  = env
+      @code    = code
+      @env     = env.branch
       parse_arguments!
     end
+
+    alias body code
 
     def to_s
       Cons.new(:lambda, Cons.new(@arglist, Cons.new(@code, Cons.empty))).to_s
@@ -15,19 +17,18 @@
     alias inspect to_s
     
     def call(*args)
-      scope = @env.branch
       @args.each_with_index do |arg, i|
         if arity < 0 && arity.abs == i + 1
-          scope.define(arg, Cons[*args[i, args.length]])
+          env.define(arg, Cons[*args[i, args.length]])
           break
         else
-          scope.define(arg, args[i])
+          env.define(arg, args[i])
         end
       end
 
       value = nil
       @code.each do |form|
-        value = Kigo.eval(form, scope)
+        value = Kigo.eval(form, env)
       end
       value
     end
@@ -38,7 +39,6 @@
         if l.arity > 0 && args.size != l.arity
           raise ArgumentError, "wrong number of arguments expected #{l.arity}, got #{args.size}"
         end
-
         l.call(*args)
       end
     end

@@ -9,7 +9,21 @@ module Kigo
       @env = env
     end
 
+    def macroexpand1(form)
+      if Cons === form && !Syntax.forms.key?(form.first)
+        value = evaluate(form.first)
+        if Kigo::Macro === value
+          value.call(form, env, *form.next.to_a)
+        else
+          form
+        end
+      else
+        form
+      end
+    end
+
     def evaluate(form)
+      form = macroexpand1(form)
       case form
       when String, Numeric, true, false, nil
         form
@@ -79,8 +93,19 @@ module Kigo
     public
 
     class Syntax
-      def self.tag(name = self.to_s.split('::').last.downcase.to_sym)
-        @tag ||= name
+      def self.[](tag)
+        klass = Class.new(self)
+        klass.class_eval("def self.tag; #{tag.inspect} end")
+        klass.class_eval do
+          def self.inherited(subclass)
+            Syntax.forms[subclass.tag] = subclass if subclass
+          end
+        end
+        klass
+      end
+
+      def self.tag
+        @tag ||= name.split('::').last.downcase.to_sym if name
       end
 
       def self.forms
@@ -88,7 +113,7 @@ module Kigo
       end
 
       def self.inherited(subclass)
-        forms[subclass.tag] = subclass if subclass.tag
+        Syntax.forms[subclass.tag] = subclass if subclass.tag
       end
 
       def evaluate(env)
@@ -111,7 +136,7 @@ module Kigo
       attr_reader :form
 
       def self.parse(form)
-        if form.size != 1
+        if form.size != 2
           raise ArgumentError, "wrong number of arguments expected 1 got #{form.size - 1}"
         end
 
@@ -127,7 +152,7 @@ module Kigo
       end
     end
 
-    class Def < Syntax
+    class Definition < Syntax[:def]
       attr_reader :name, :value
 
       def self.parse(form)
@@ -148,9 +173,7 @@ module Kigo
       end
     end
 
-    class Assignment < Syntax
-      tag :set!
-
+    class Assignment < Syntax[:set!]
       attr_reader :subject, :value
 
       def self.parse(form)
@@ -205,7 +228,13 @@ module Kigo
       end
     end
 
-    class Cond < Syntax
+    class Macro < Lambda
+      def evaluate(env)
+        Kigo::Macro.new(arglist, body, env)
+      end
+    end
+
+    class Conditional < Syntax[:cond]
       attr_reader :expressions
 
       def self.parse(form)
@@ -262,19 +291,18 @@ module Kigo
         end
       end
     end
-
-    class Macro < Syntax
-      tag nil
-
-      def self.parse(form)
-        new()
-      end
-
-      def evaluate(env)
-        env.define(:'*env*', env)
-        env.define(:'*form*', form)
-        call(*form.to_a)
-      end
-    end
   end
+end
+
+def comment
+  nil
+end
+
+comment do
+  macro = Kigo::Cons[:macro,
+            Kigo::Cons[:pred, :conse, :alt],
+            Kigo::Cons[:'Kigo::Cons', Kigo::Cons[:quote, :cond], :pred, :conse, Kigo::Cons[:quote, :else], :alt]]
+
+  eval = Kigo::Evaluator.new
+  eval.env.define(:if, eval.evaluate(macro))
 end
