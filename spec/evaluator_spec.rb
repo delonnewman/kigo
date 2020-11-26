@@ -125,5 +125,11 @@ RSpec.describe Kigo::Evaluator do
         end
       end
     end
+
+    context 'application' do
+      it 'should take the arguments passed and apply them to the form in first position' do
+        expect(evaluator.evaluate(Kigo::Cons[:+, 1, 2, 3])).to eq(1 + 2 + 3)
+      end
+    end
   end
 end
