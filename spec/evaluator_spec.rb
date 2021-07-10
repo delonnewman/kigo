@@ -89,7 +89,7 @@ RSpec.describe Kigo::Evaluator do
       it 'should accept arguments and evalute the body when expanded' do
         expect(evaluator.evaluate(macro)).to be_a Kigo::Macro
         expect(evaluator.evaluate(macro).call(nil, nil, true, 1, 2)).to eq Kigo::Cons[:cond, true, 1, :else, 2]
-      
+
         #evaluator.evaluate(definition)
         evaluator.env.define(:if, evaluator.evaluate(macro))
         #expect(evaluator.evaluate(:if)).to be_a Kigo::Macro
