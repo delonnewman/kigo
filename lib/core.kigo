@@ -126,6 +126,9 @@
 
 (def list?
   (lambda (x) (send x :is_a? Kigo::Cons)))
+  
+(def empty?
+  (lambda (x) (send x :empty?)))
 
 (def numeric?
   (lambda (x) (send x :is_a? Numeric)))
