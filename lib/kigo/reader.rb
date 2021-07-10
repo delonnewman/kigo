@@ -3,8 +3,8 @@ module Kigo
   class Reader
     attr_reader :line
 
-    START_SYMBOL_PAT = /[A-Za-z_\-\*\/\+\&\=\?\^\<\>\%\$\#\@\!\.]/.freeze
-    SYMBOL_PAT       = /[A-Za-z0-9_\-\*\/\+\&\=\?\^\<\>\%\$\#\@\!\.\:]/.freeze
+    START_SYMBOL_PAT = /[A-Za-z_\-\*\/\+\=\?\^\<\>\%\$\#\@\!\.]/.freeze
+    SYMBOL_PAT       = /[A-Za-z0-9_\-\*\/\+\=\?\^\<\>\%\$\#\@\!\.\:]/.freeze
     DIGIT_PAT        = /\d/.freeze
     DOUBLE_QUOTE     = '"'
     OPEN_PAREN       = '('
@@ -55,6 +55,9 @@ module Kigo
       elsif current_token == "'"
         next_token!
         Cons.new(:quote, next!)
+      elsif current_token == '&' # FIXME: not sure why this isn't working
+        next_token!
+        Cons.new(:'block-coerce', next!)
       elsif current_token == OPEN_PAREN
         next_token!
         read_list!
@@ -65,6 +68,8 @@ module Kigo
         next_token!
         read_hash!
       else
+        return self if eof?
+
         raise "Invalid token #{current_token.inspect} at line #{@line} column #{@column}"
       end
     end

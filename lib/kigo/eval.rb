@@ -2,7 +2,7 @@
 module Kigo
   extend self
 
-  SPECIAL_FORMS = Set[:def, :quote, :send, :set!, :cond, :lambda, :macro].freeze
+  SPECIAL_FORMS = Set[:def, :quote, :send, :set!, :cond, :lambda, :macro, :'block-coerce'].freeze
 
   def macroexpand1(form, env = Environment.top_level)
     if Cons === form && !SPECIAL_FORMS.include?(form.first)
@@ -48,6 +48,8 @@ module Kigo
         eval_cond(form, env)
       when :send
         eval_send(form, env)
+      when :'block-coerce'
+        Cons.new(form.first, eval(form.next.first, env))
       when :macro
         eval_macro(form, env)
       else
@@ -150,8 +152,8 @@ module Kigo
     args    = parse_args(form.next.next.next || [], env)
     last    = args.last
 
-    if Lambda === last
-      subject.send(method, *args.take(args.size - 1), &last)
+    if last.is_a?(Cons) && last.first == :'block-coerce'
+      subject.send(method, *args.take(args.size - 1), &last.next)
     else
       subject.send(method, *args)
     end

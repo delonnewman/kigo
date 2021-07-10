@@ -175,11 +175,14 @@
 (def inspect
   (lambda (x) (send x :inspect)))
 
-(def map
+(def map-1
   (lambda (f col)
     (cond
       (empty? col) col
       else (cons (f (first col)) (map f (rest col))))))
+
+(def map
+  (lambda (f col) (send col :map f)))
 
 (def reduce-1
   (lambda (f col init)
