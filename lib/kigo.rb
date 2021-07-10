@@ -12,10 +12,10 @@ require_relative 'kigo/macro'
 require_relative 'kigo/method_dispatch'
 require_relative 'kigo/reader'
 require_relative 'kigo/environment'
-require_relative 'kigo/evaluator'
+require_relative 'kigo/eval'
 
 module Kigo
-  extend self
+  module_function
 
   RuntimeError  = Class.new(::RuntimeError)
   ArgumentError = Class.new(RuntimeError)
@@ -32,14 +32,15 @@ module Kigo
       until r.eof?
         form = r.next!
         next if form == r
+
         last = Kigo.eval(form, env)
       end
     end
     last
   end
 
-  def eval_file(file)
-    eval_string(IO.read(file, encoding: 'UTF-8'))
+  def eval_file(file, **kwargs)
+    eval_string(File.read(file, **kwargs))
   end
 
   def read(string)
@@ -52,24 +53,16 @@ module Kigo
       until r.eof?
         form = r.next!
         next if form == r
+
         array << form
       end
     end
     array
   end
 
-  def evaluator(env)
-    @evaluators ||= {}
-    @evaluators[env.object_id] ||= Kigo::Evaluator.new(env)
-  end
-
-  def eval(form, env = Environment.top_level)
-    evaluator(env).evaluate(form)
-  end
-
   def apply(callable, args)
     args = args.to_a
-    
+
     return callable[*args]          if callable.respond_to?(:[])
     return callable.include?(*args) if callable.respond_to?(:include?)
 
@@ -78,7 +71,7 @@ module Kigo
 end
 
 Kigo::Environment.top_level.define(:'*module*', Kigo.current_module)
-Kigo.eval_file(File.join(__dir__, 'core.kigo'))
+Kigo.eval_file(File.join(__dir__, 'core.kigo'), encoding: 'filesystem')
 
 #string = '"test" 1 + read * / @ ^hey (1 2 (3 4))'
 #
