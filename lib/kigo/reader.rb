@@ -3,9 +3,9 @@ module Kigo
   class Reader
     attr_reader :line
 
-    START_SYMBOL_PAT = /[A-Za-z_\-\*\/\+\=\?\^\<\>\%\$\#\@\!\.]/.freeze
-    SYMBOL_PAT       = /[A-Za-z0-9_\-\*\/\+\=\?\^\<\>\%\$\#\@\!\.\:]/.freeze
-    DIGIT_PAT        = /\d/.freeze
+    START_SYMBOL_PAT = /[A-Za-z_\-\*\/\+\=\?\^\<\>\%\$\#\@\!\.]/
+    SYMBOL_PAT       = /[A-Za-z0-9_\-\*\/\+\=\?\^\<\>\%\$\#\@\!\.\:\[\]]/
+    DIGIT_PAT        = /\d/
     DOUBLE_QUOTE     = '"'
     OPEN_PAREN       = '('
     CLOSE_PAREN      = ')'
@@ -54,10 +54,10 @@ module Kigo
         read_keyword!
       elsif current_token == "'"
         next_token!
-        Cons.new(:quote, next!)
+        Cons[:quote, next!]
       elsif current_token == '&' # FIXME: not sure why this isn't working
         next_token!
-        Cons.new(:'block-coerce', next!)
+        Cons[:block, next!]
       elsif current_token == OPEN_PAREN
         next_token!
         read_list!

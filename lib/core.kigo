@@ -92,7 +92,7 @@
 
 (def let
   (macro (bindings *body)
-         (cons (cons 'lambda (cons (map first bindings) body)) (map second bindings))))
+         (list (cons 'lambda (cons (map first bindings) body)) (map second bindings))))
 
 (def comment
   (macro (*xs) nil))
@@ -142,22 +142,22 @@
 (def rational?
   (lambda (x) (send x :is_a? Rational)))
 
-(def ->string
+(def to_s
   (lambda (x) (send x :to_s)))
 
-(def ->integer
+(def to_i
   (lambda (x) (send x :to_i)))
 
-(def ->rational
+(def to_r
   (lambda (x) (send x :to_r)))
 
-(def ->float
+(def to_f
   (lambda (x) (send x :to_f)))
 
-(def ->array
+(def to_a
   (lambda (x) (send x :to_a)))
 
-(def ->hash
+(def to_h
   (lambda (x) (send x :to_h)))
 
 (def count

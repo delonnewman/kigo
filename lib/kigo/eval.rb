@@ -2,16 +2,14 @@
 module Kigo
   extend self
 
-  SPECIAL_FORMS = Set[:def, :quote, :send, :set!, :cond, :lambda, :macro, :'block-coerce'].freeze
+  SPECIAL_FORMS = Set[:def, :quote, :send, :set!, :cond, :lambda, :macro, :block].freeze
 
   def macroexpand1(form, env = Environment.top_level)
-    if Cons === form && !SPECIAL_FORMS.include?(form.first)
-      value = eval(form.first, env)
-      if Macro === value
-        value.call(form, env, *form.next.to_a)
-      else
-        form
-      end
+    return form unless Cons === form && !SPECIAL_FORMS.include?(form.first)
+
+    value = eval(form.first, env)
+    if Macro === value
+      value.call(form, env, *form.next.to_a)
     else
       form
     end
@@ -48,8 +46,8 @@ module Kigo
         eval_cond(form, env)
       when :send
         eval_send(form, env)
-      when :'block-coerce'
-        Cons.new(form.first, eval(form.next.first, env))
+      when :block
+        Cons[form.first, eval(form.next.first, env)]
       when :macro
         eval_macro(form, env)
       else
@@ -145,15 +143,15 @@ module Kigo
   end
 
   def eval_send(form, env)
-    raise ArgumentError, "wrong number of arugments got #{form.count - 1}, expected 2 or 3" if form.count < 3
+    raise ArgumentError, "wrong number of arguments got #{form.count - 1}, expected 2 or 3" if form.count < 3
 
     subject = Kigo.eval(form.next.first, env)
     method  = Kigo.eval(form.next.next.first, env)
     args    = parse_args(form.next.next.next || [], env)
     last    = args.last
 
-    if last.is_a?(Cons) && last.first == :'block-coerce'
-      subject.send(method, *args.take(args.size - 1), &last.next)
+    if last.is_a?(Cons) && last.first == :block
+      subject.send(method, *args.take(args.size - 1), &last.next.first)
     else
       subject.send(method, *args)
     end
