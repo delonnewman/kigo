@@ -59,15 +59,6 @@ module Kigo
     end
     array
   end
-
-  def apply(callable, args)
-    args = args.to_a
-
-    return callable[*args]          if callable.respond_to?(:[])
-    return callable.include?(*args) if callable.respond_to?(:include?)
-
-    callable.call(*args)
-  end
 end
 
 Kigo::Environment.top_level.define(:'*module*', Kigo.current_module)

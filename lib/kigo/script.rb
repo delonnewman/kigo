@@ -14,7 +14,7 @@ module Kigo
     end
   end
 
-  def eval(form, env)
+  def eval(form, env = Environment.top_level)
     case form
     when String, Numeric, true, false, nil
       form
@@ -155,12 +155,7 @@ module Kigo
     end
 
     def APPLICATION(form, env)
-      callable = Kigo.eval(form.first, env)
-      args     = parse_args(form.next || [], env)
-
-      raise SyntaxError, "invalid execution context for macros" if Macro === callable
-
-      Kigo.apply(callable, args)
+      SEND(Cons[:send, *form.to_a], env)
     end
 
     def parse_args(list, env)
