@@ -12,7 +12,7 @@ require_relative 'kigo/macro'
 require_relative 'kigo/method_dispatch'
 require_relative 'kigo/reader'
 require_relative 'kigo/environment'
-require_relative 'kigo/eval'
+require_relative 'kigo/script'
 
 module Kigo
   module_function
