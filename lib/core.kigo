@@ -6,6 +6,9 @@
 
 (def eval (lambda (form) (Kigo eval form)))
 
+(def puts (lambda (*args) (Kernel puts *args)))
+(def gets (lambda (*args) (Kernel gets *args)))
+
 (def p (lambda (*args) (Kernel p *args)))
 (def pp (lambda (*args) (Kernel pp *args)))
 
