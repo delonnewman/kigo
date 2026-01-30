@@ -132,8 +132,9 @@ module Kigo
       args    = parse_args(form.next.next.next || [], env)
       last    = args.last
 
-      if last.is_a?(Cons) && last.first == :block
-        subject.send(method, *args.take(args.size - 1), &last.next.first)
+      if last.is_a?(::Kigo::Lambda)
+        args = args.take(args.size - 1)
+        subject.send(method, *args, &last)
       else
         subject.send(method, *args)
       end
