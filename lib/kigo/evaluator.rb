@@ -1,7 +1,7 @@
 module Kigo
   module_function
 
-  SPECIAL_FORMS = Set[:def, :quote, :send, :set!, :cond, :lambda, :macro, :block].freeze
+  SPECIAL_FORMS = Set[:def, :quote, :send, :set!, :cond, :lambda, :macro].freeze
 
   def macroexpand1(form, env = Environment.top_level)
     return form unless Cons === form && !SPECIAL_FORMS.include?(form.first)
@@ -53,10 +53,10 @@ module Kigo
   def Cons(form, env)
     return Cons.empty if form.empty?
 
-    Script.eval(form, env)
+    Form.eval(form, env)
   end
 
-  module Script
+  module Form
     module_function
 
     def eval(form, env)
