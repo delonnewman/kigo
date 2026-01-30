@@ -55,9 +55,9 @@ module Kigo
       elsif current_token == "'"
         next_token!
         Cons[:quote, next!]
-      elsif current_token == '&' # FIXME: not sure why this isn't working
+      elsif current_token == '&'
         next_token!
-        Cons[:block, next!]
+        Cons[:lambda, Cons[:'*args'], next!]
       elsif current_token == OPEN_PAREN
         next_token!
         read_list!
