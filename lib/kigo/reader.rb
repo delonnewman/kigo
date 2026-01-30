@@ -4,7 +4,7 @@ module Kigo
     attr_reader :line
 
     START_SYMBOL_PAT = /[A-Za-z_\-\*\/\+\=\?\^\<\>\%\$\#\@\!\.]/
-    SYMBOL_PAT       = /[A-Za-z0-9_\-\*\/\+\=\?\^\<\>\%\$\#\@\!\.\:\[\]]/
+    SYMBOL_PAT       = /[A-Za-z0-9_\-\*\/\+\=\?\^\<\>\%\$\#\@\!\.\:]/
     DIGIT_PAT        = /\d/
     DOUBLE_QUOTE     = '"'
     OPEN_PAREN       = '('

@@ -89,6 +89,13 @@ module Kigo
         return obj
       end
 
+      if subject.is_a?(Array)
+        obj = Kigo.eval(subject[0], env)
+        key = Kigo.eval(subject[1], env)
+        obj.send(:[]=, key, value)
+        return obj
+      end
+
       scope = env.lookup!(subject)
       val   = scope.value(subject)
 
