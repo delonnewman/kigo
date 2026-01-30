@@ -143,10 +143,6 @@ module Kigo
       end
     end
 
-    def BLOCK(form, env)
-      Cons[form.first, Kigo.eval(form.next.first, env)]
-    end
-
     def MACRO(form, env)
       Macro.new(form.next.first, form.next.next, env)
     end
