@@ -24,3 +24,5 @@
       (2 == length) (Range new *args)
       (3 == length) (Range new *args)
       :else (Kernel raise ArgumentError "expected 1, 2, or 3"))))
+
+(def rand (lambda (*args) (Kernel rand *args)))
