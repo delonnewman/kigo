@@ -125,7 +125,10 @@ module Kigo
     end
 
     def SEND(form, env)
-      raise ArgumentError, "wrong number of arguments got #{form.count - 1}, expected 2 or 3" if form.count < 3
+      if form.count < 3
+        got = form.count - 1
+        raise ArgumentError, "wrong number of arguments got #{got}, expected 2 or 3"
+      end
       
       subject = Kigo.eval(form[1], env)
       method  = form[2].is_a?(Symbol) ? form[2] : Kigo.eval(form[2], env)
