@@ -153,8 +153,8 @@ module Kigo
 
     def APPLICATION(form, env)
       tag = form[0]
-      if tag.is_a?(Symbol) && tag.to_s.include?(Reader::PERIOD)
-        return MethodDispatch.parse(tag, env).call(*form.rest.to_a)
+      if tag.is_a?(Symbol) && tag.name.include?(Reader::PERIOD)
+        return MethodDispatch.parse(tag.name, env).call(*form.rest.to_a)
       end
 
       tag = Kigo.eval(form[0], env) if tag.is_a?(Cons)
