@@ -28,3 +28,6 @@
 (def rand (lambda (*args) (Kernel rand *args)))
 
 (def + (lambda (*args) (args sum)))
+
+(def = (lambda (a b) (a == b)))
+(def hash-code (lambda (object) (object hash))
