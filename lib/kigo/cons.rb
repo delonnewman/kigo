@@ -66,5 +66,11 @@ module Kigo
 
     alias first car
     alias next cdr
+
+    def rest
+      return cdr unless cdr.nil?
+
+      self.class.empty
+    end
   end
 end
