@@ -86,14 +86,14 @@ module Kigo
 
       if subject.is_a?(Cons)
         obj = Kigo.eval(subject[0], env)
-        obj.send(:"#{subject[1]}=", value)
+        obj.public_send(:"#{subject[1]}=", value)
         return obj
       end
 
       if subject.is_a?(Array)
         obj = Kigo.eval(subject[0], env)
         key = Kigo.eval(subject[1], env)
-        obj.send(:[]=, key, value)
+        obj.public_send(:[]=, key, value)
         return obj
       end
 
