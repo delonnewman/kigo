@@ -80,24 +80,23 @@ module Kigo
     end
 
     def SET!(form, env)
-      subject = form.next.first
-      value   = form.next.next&.first
+      subject = form[1]
+      value   = form[2]
 
-      string = subject.to_s
-      unless string.include?(Reader::PERIOD)
-        scope = env.lookup!(subject)
-        val   = scope.value(subject)
-
-        if val.respond_to?(:set!)
-          return val.set!(value)
-        else
-          return scope.define(subject, value)
-        end
+      if subject.is_a?(Cons)
+        obj = Kigo.eval(subject[0], env)
+        obj.send(:"#{subject[1]}=", value)
+        return obj
       end
 
-      res = MethodDispatch.parse(subject.to_s, env)
-      res.subject.send(:"#{res.method}=", value)
-      res.subject
+      scope = env.lookup!(subject)
+      val   = scope.value(subject)
+
+      if val.respond_to?(:set!)
+        return val.set!(value)
+      else
+        return scope.define(subject, value)
+      end
     end
 
     def LAMBDA(form, env)
