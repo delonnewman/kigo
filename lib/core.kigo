@@ -1,3 +1,10 @@
+; -*- mode: clojure -*-
+
 (def comment (macro (*args) nil))
 
 (def *module* (Kigo current_module))
+
+(def eval (lambda (form) (Kigo eval form)))
+
+(def p (lambda (*args) (Kernel p *args)))
+(def pp (lambda (*args) (Kernel pp *args)))
