@@ -1,0 +1,1 @@
+(def *module* (Kigo current_module))
