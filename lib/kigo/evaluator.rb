@@ -15,6 +15,7 @@ module Kigo
   end
 
   def eval(form, env = Environment.top_level)
+    form = macroexpand1(form, env)
     case form
     when String, Numeric, true, false, nil
       form
