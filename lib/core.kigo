@@ -1,1 +1,3 @@
+(def comment (macro (*args) nil))
+
 (def *module* (Kigo current_module))
