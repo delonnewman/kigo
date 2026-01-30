@@ -160,7 +160,8 @@ module Kigo
 
     def APPLICATION(form, env)
       tag = form[0]
-      tag = Kigo.eval(tag, env) if tag.is_a?(Cons)
+      tag = Kigo.eval(tag, env)
+
       if tag.respond_to?(:call)
         args = form.rest.map { |x| Kigo.eval(x, env) }
         return tag.call(*args)
