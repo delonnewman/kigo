@@ -3,7 +3,6 @@ require 'set'
 require 'singleton'
 require 'stringio'
 
-require_relative 'kigo/core'
 require_relative 'kigo/var'
 require_relative 'kigo/cons'
 require_relative 'kigo/keyword'
@@ -22,7 +21,7 @@ module Kigo
   TypeError     = Class.new(RuntimeError)
 
   def current_module
-    @current_module ||= Var.new(Kigo::Core, dynamic: true)
+    @current_module ||= Var.new(Kigo, dynamic: true)
   end
 
   def eval_string(string, env = Environment.top_level)
