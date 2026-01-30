@@ -47,10 +47,7 @@ module Kigo
   end
 
   def Symbol(form, env)
-    string = form.to_s
-    return env.lookup_value!(form) unless string.include?(Reader::PERIOD)
-
-    MethodDispatch.parse(string, env)
+    env.lookup_value!(form)
   end
 
   def Cons(form, env)
@@ -155,6 +152,11 @@ module Kigo
     end
 
     def APPLICATION(form, env)
+      tag = form[0].to_s
+      if tag.include?(Reader::PERIOD)
+        return MethodDispatch.parse(tag, env).call(*form.rest.to_a)
+      end
+
       SEND(Cons[:send, *form.to_a], env)
     end
 
