@@ -8,3 +8,16 @@
 
 (def p (lambda (*args) (Kernel p *args)))
 (def pp (lambda (*args) (Kernel pp *args)))
+
+(def list (lambda (*args) args))
+(def array (lambda (*args) (args to_a)))
+(def hash-map (lambda (*args) (Hash "[]" *args)))
+
+(def range
+  (lambda (*args)
+    (def length (args length))
+    (cond
+      (1 == length) (Range new 0 (args first))
+      (2 == length) (Range new *args)
+      (3 == length) (Range new *args)
+      :else (Kernel raise ArgumentError "expected 1, 2, or 3"))))
