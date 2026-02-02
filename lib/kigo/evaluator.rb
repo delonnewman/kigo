@@ -101,29 +101,27 @@ module Kigo
     end
 
     def SET!(form, env)
-      subject    = form[1]
-      value      = form[2]
-      assignment = Assignment.new(subject, value)
+      assignment = Assignment.from_data(form)
 
       if assignment.method_assignment?
-        obj = Kigo.eval(subject[0], env)
-        obj.public_send(:"#{subject[1]}=", value)
+        obj = Kigo.eval(assignment.subject[0], env)
+        obj.public_send(:"#{assignment.subject[1]}=", Kigo.eval(assignment.value, env))
         return obj
       end
 
       if assignment.member_assignment?
-        obj = Kigo.eval(subject[0], env)
-        key = Kigo.eval(subject[1], env)
-        obj.public_send(:[]=, key, value)
+        obj = Kigo.eval(assignment.subject[0], env)
+        key = Kigo.eval(assignment.subject[1], env)
+        obj.public_send(:[]=, key, Kigo.eval(assignment.value, env))
         return obj
       end
 
-      if env.local_variable_defined?(subject)
-        val = env.local_variable_get(subject)
-        return val.set!(value) if val.respond_to?(:set!)
+      if env.local_variable_defined?(assignment.subject)
+        val = env.local_variable_get(assignment.subject)
+        return val.set!(assignment.value) if val.respond_to?(:set!)
       end
 
-      return env.local_variable_set(subject, value)
+      return env.local_variable_set(assignment.subject, Kigo.eval(assignment.value, env))
     end
 
     def LAMBDA(form, env)
@@ -180,8 +178,12 @@ module Kigo
     def APPLICATION(form, env)
       tag = form[0]
 
-      if tag.is_a?(Symbol) && Kernel.respond_to?(tag)
-        return Kernel.public_send(tag, *form.rest.to_a)
+      if tag.is_a?(Symbol)
+        if Kernel.respond_to?(tag)
+          return Kernel.public_send(tag, *form.rest.to_a)
+        elsif Kernel.const_defined?(tag)
+          return Kernel::const_get(tag).public_send(*form.rest.to_a)
+        end
       end
 
       tag = Kigo.eval(tag, env)
