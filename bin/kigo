@@ -5,22 +5,22 @@ require 'readline'
 if ARGV.count == 1
   Kigo.eval_file(ARGV.first)
 else
-  env = Kigo::Environment.top_level
   module Kigo
-    Scratch = Module.new
-  end
-  Kigo.current_module.set!(Kigo::Scratch)
-  while (str = Readline.readline("#{Kigo.current_module.value}> ", true))
-    if str == 'exit'
-      exit 1
-    else
-      begin
-        result = Kigo.eval_string(str, env)
-        puts "=> #{result.inspect}"
-      rescue => e
-        puts "#{e.class}: #{e.message}"
-        e.backtrace.each do |trace|
-          puts "  #{trace}"
+    module Scratch
+      Kigo.current_module.set!(self)
+      while (str = Readline.readline("#{Kigo.current_module.value}> ", true))
+        if str == 'exit'
+          exit 1
+        else
+          begin
+            result = Kigo.eval_string(str, binding)
+            puts "=> #{result.inspect}"
+          rescue => e
+            puts "#{e.class}: #{e.message}"
+            e.backtrace.each do |trace|
+              puts "  #{trace}"
+            end
+          end
         end
       end
     end

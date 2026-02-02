@@ -24,7 +24,7 @@ module Kigo
     @current_module ||= Var.new(Kigo, dynamic: true)
   end
 
-  def eval_string(string, env = Environment.top_level)
+  def eval_string(string, env)
     last = nil
     Reader.new(string).tap do |r|
       until r.eof?
@@ -38,7 +38,7 @@ module Kigo
   end
 
   def eval_file(file, **kwargs)
-    eval_string(File.read(file, **kwargs))
+    eval_string(File.read(file, **kwargs), binding)
   end
 
   def read(string)
@@ -59,7 +59,6 @@ module Kigo
   end
 end
 
-Kigo::Environment.top_level.define(:'*module*', Kigo.current_module)
 Kigo.eval_file(File.join(__dir__, 'core.kigo'), encoding: 'filesystem')
 
 #string = '"test" 1 + read * / @ ^hey (1 2 (3 4))'

@@ -5,7 +5,7 @@ module Kigo
 
   SPECIAL_FORMS = Set[:def, :quote, :send, :set!, :cond, :lambda, :macro].freeze
 
-  def macroexpand1(form, env = Environment.top_level)
+  def macroexpand1(form, env)
     return form unless Cons === form && !SPECIAL_FORMS.include?(form.first)
 
     value = eval(form.first, env)
@@ -16,7 +16,7 @@ module Kigo
     end
   end
 
-  def eval(form, env = Environment.top_level)
+  def eval(form, env)
     case form
     when String, Numeric, true, false, nil
       form
@@ -26,7 +26,7 @@ module Kigo
     end
   end
 
-  def method_missing(method, form, env)
+  def method_missing(method, *args)
     raise RuntimeError, "Invalid form: #{form.inspect}:#{form.class}"
   end
 
@@ -49,7 +49,9 @@ module Kigo
   end
 
   def Symbol(form, env)
-    env.lookup_value!(form)
+    return env.receiver if form == :self
+
+    env.local_variable_get(form)
   end
 
   def Cons(form, env)
@@ -78,7 +80,7 @@ module Kigo
     end
 
     def DEF(form, env)
-      env.define(form.next.first, Kigo.eval(form.next.next.first, env))
+      # env.define(form.next.first, Kigo.eval(form.next.next.first, env))
     end
 
     def SET!(form, env)
@@ -99,14 +101,12 @@ module Kigo
         return obj
       end
 
-      scope = env.lookup!(subject)
-      val   = scope.value(subject)
-
-      if val.respond_to?(:set!)
-        return val.set!(value)
-      else
-        return scope.define(subject, value)
+      if env.local_variable_defined?(subject)
+        val = env.local_variable_get(subject)
+        return val.set!(value) if val.respond_to?(:set!)
       end
+
+      return env.local_variable_set(subject, value)
     end
 
     def LAMBDA(form, env)
