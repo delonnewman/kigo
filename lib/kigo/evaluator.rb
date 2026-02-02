@@ -1,3 +1,5 @@
+require_relative 'assignment'
+
 module Kigo
   module_function
 
@@ -15,7 +17,7 @@ module Kigo
   end
 
   def eval(form, env = Environment.top_level)
-    form = macroexpand1(form, env)
+    # form = macroexpand1(form, env)
     case form
     when String, Numeric, true, false, nil
       form
@@ -81,16 +83,17 @@ module Kigo
     end
 
     def SET!(form, env)
-      subject = form[1]
-      value   = form[2]
+      subject    = form[1]
+      value      = form[2]
+      assignment = Assignment.new(subject, value)
 
-      if subject.is_a?(Cons)
+      if assignment.method_assignment?
         obj = Kigo.eval(subject[0], env)
         obj.public_send(:"#{subject[1]}=", value)
         return obj
       end
 
-      if subject.is_a?(Array)
+      if assignment.member_assignment?
         obj = Kigo.eval(subject[0], env)
         key = Kigo.eval(subject[1], env)
         obj.public_send(:[]=, key, value)
@@ -160,8 +163,12 @@ module Kigo
 
     def APPLICATION(form, env)
       tag = form[0]
-      tag = Kigo.eval(tag, env)
 
+      if tag.is_a?(Symbol) && Kernel.respond_to?(tag)
+        return Kernel.public_send(tag, *form.rest.to_a)
+      end
+
+      tag = Kigo.eval(tag, env)
       if tag.respond_to?(:call)
         args = form.rest.map { |x| Kigo.eval(x, env) }
         return tag.call(*args)
