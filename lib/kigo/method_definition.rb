@@ -3,12 +3,13 @@ module Kigo
     attr_reader :method, :args, :body 
 
     def self.from_data(form)
-      raise ArgumentError, "invalid form expected: (def NAME ARGS *BODY)" unless form.length > 3
+      raise SyntaxError, "invalid form, expected: (def NAME ARGS *BODY)" unless form.length > 3
       
       method = form[1]
       if method.is_a?(Cons)
         (receiver, method) = method.to_a
       end
+
       new(receiver:, method:, args: form[2], body: form.drop(3))
     end
     
