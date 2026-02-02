@@ -7,13 +7,14 @@ if ARGV.count == 1
 else
   module Kigo
     module Scratch
+      env = binding
       Kigo.current_module.set!(self)
       while (str = Readline.readline("#{Kigo.current_module.value}> ", true))
         if str == 'exit'
           exit 1
         else
           begin
-            result = Kigo.eval_string(str, binding)
+            result = Kigo.eval_string(str, env)
             puts "=> #{result.inspect}"
           rescue => e
             puts "#{e.class}: #{e.message}"
