@@ -26,8 +26,10 @@
       :else (Kernel raise ArgumentError "expected 1, 2, or 3"))))
 
 (def rand (lambda (*args) (Kernel rand *args)))
+(def srand (lambda (*args) (Kernel srand *args)))
 
 (def + (lambda (*args) (args sum)))
 
 (def = (lambda (a b) (a == b)))
-(def hash-code (lambda (object) (object hash))
+(def hash-code (lambda (object) (object hash)))
+
