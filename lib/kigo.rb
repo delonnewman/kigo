@@ -9,7 +9,6 @@ require_relative 'kigo/keyword'
 require_relative 'kigo/lambda'
 require_relative 'kigo/macro'
 require_relative 'kigo/reader'
-require_relative 'kigo/environment'
 require_relative 'kigo/evaluator'
 
 module Kigo

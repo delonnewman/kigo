@@ -1,4 +1,5 @@
 require_relative 'assignment'
+require_relative 'method_definition'
 
 module Kigo
   module_function
@@ -80,7 +81,23 @@ module Kigo
     end
 
     def DEF(form, env)
-      # env.define(form.next.first, Kigo.eval(form.next.next.first, env))
+      definition = MethodDefinition.from_data(form)
+
+      if definition.instance_method?
+        definition.receiver.define_method(
+          definition.method,
+          *definition.args,
+          &definition.body_proc
+        )
+      else
+        definition.receiver.define_singleton_method(
+          definition.method,
+          *definition.args,
+          &definition.body_proc
+        )
+      end
+
+      definition.method
     end
 
     def SET!(form, env)
