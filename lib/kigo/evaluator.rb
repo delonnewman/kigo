@@ -125,12 +125,9 @@ module Kigo
     end
 
     def LAMBDA(form, env)
-      raise ArgumentError, "wrong number of arguments expected 1 or more got #{form.count}" if form.count < 2
-
-      arglist = form.next.first
-      body    = form.next.next || Cons.empty
-
-      Lambda.new(arglist, body, env)
+      syn = Lambda.from_data(form)
+      syn.env = env
+      syn
     end
 
     def COND(form, env)

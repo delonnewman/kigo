@@ -1,11 +1,20 @@
  module Kigo
   class Lambda
-    attr_reader :arity, :arglist, :code, :env
+    attr_reader :arity, :arglist, :code
+    attr_accessor :env
 
-    def initialize(args, code, env)
+    def self.from_data(form)
+      raise SyntaxError, "invalid from, expected (lambda ARGS *BODY)" if form.count < 2
+
+      arglist = form[1]
+      body    = form.next.next || Cons.empty
+
+      Lambda.new(arglist, body)
+    end
+
+    def initialize(args, code)
       @arglist = args
       @code    = code
-      @env     = env.branch
       parse_arguments!
     end
 
@@ -19,10 +28,10 @@
     def call(*args)
       @args.each_with_index do |arg, i|
         if arity < 0 && arity.abs == i + 1
-          env.define(arg, Cons[*args[i, args.length]])
+          env.local_variable_set(arg, Cons[*args[i, args.length]])
           break
         else
-          env.define(arg, args[i])
+          env.local_variable_set(arg, args[i])
         end
       end
 
