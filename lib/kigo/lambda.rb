@@ -21,7 +21,7 @@
     alias body code
 
     def to_s
-      Cons.new(:lambda, Cons.new(@arglist, Cons.new(@code, Cons.empty))).to_s
+      Cons.new(:lambda, Cons.new(@arglist, @code)).to_s
     end
     alias inspect to_s
     
