@@ -170,7 +170,9 @@ module Kigo
     end
 
     def MACRO(form, env)
-      Macro.new(form.next.first, form.next.next, env)
+      syn = Macro.from_data(form)
+      syn.env = env
+      syn
     end
 
     def method_missing(method, form, env)
