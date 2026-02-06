@@ -11,7 +11,7 @@ module Kigo
     end
 
     def self.empty
-      @empty ||= new(nil, nil)
+      @empty ||= new(nil, nil, 0)
     end
 
     def initialize(car, cdr, count = 0)
