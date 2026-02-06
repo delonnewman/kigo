@@ -21,6 +21,7 @@ module Kigo
     RETURN           = "\r"
     COMMA            = ','
     EMPTY_STRING     = ''
+    IMPLICIT_VARS    = %i[_2 _3 _4 _5].to_set
 
     def initialize(string)
       @tokens   = string.split('')
@@ -57,7 +58,16 @@ module Kigo
         Cons[:quote, next!]
       elsif current_token == '&'
         next_token!
-        Cons[:lambda, Cons[:'*args'], next!]
+        if (list = next!).is_a?(Cons)
+          args = list.each_with_object({}) do |form, args| 
+            args[form] = :arg_0 if form == :it || form == :_1
+            args[form] = :"arg_#{args.size}" if IMPLICIT_VARS.include?(form)
+          end
+          list = list.map(&args)
+          Cons[:lambda, Cons[*args.values], *list]
+        else
+          Cons[form, :to_proc]
+        end
       elsif current_token == OPEN_PAREN
         next_token!
         read_list!
