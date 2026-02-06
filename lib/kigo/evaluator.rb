@@ -156,7 +156,7 @@ module Kigo
       args    = parse_args(form.drop(3), env)
       last    = args.last
 
-      if last.is_a?(::Kigo::Lambda)
+      if last.respond_to?(:to_proc)
         args = args.take(args.size - 1)
         subject.send(method, *args, &last)
       else
@@ -178,7 +178,7 @@ module Kigo
       if tag.is_a?(Symbol)
         if Kernel.respond_to?(tag)
           return Kernel.public_send(tag, *form.rest.to_a)
-        elsif Kernel.const_defined?(tag)
+        elsif tag[0] =~ /\A[A-Z]/ && Kernel.const_defined?(tag)
           return Kernel::const_get(tag).public_send(*form.rest.to_a)
         end
       end
