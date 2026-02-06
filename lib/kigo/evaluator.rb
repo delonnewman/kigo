@@ -1,4 +1,5 @@
 require_relative 'assignment'
+require_relative 'conditional'
 require_relative 'method_definition'
 
 module Kigo
@@ -135,13 +136,13 @@ module Kigo
     end
 
     def COND(form, env)
-      return if form.next.nil?
-      raise "cond should have an even number of elements" if form.next.count.odd?
+      cond = Conditional.from_data(form)
+      return if cond.empty?
 
       result = nil
-      form.next.each_slice(2) do |(predicate, consequent)|
-        if predicate == :else or Kigo.eval(predicate, env)
-          result = Kigo.eval(consequent, env)
+      cond.pairs.each do |pair|
+        if pair.alternate? or Kigo.eval(pair.predicate, env)
+          result = Kigo.eval(pair.consequent, env)
           break
         end
       end
