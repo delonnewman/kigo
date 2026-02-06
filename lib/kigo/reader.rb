@@ -58,16 +58,7 @@ module Kigo
         Cons[:quote, next!]
       elsif current_token == '&'
         next_token!
-        if (list = next!).is_a?(Cons)
-          args = list.each_with_object({}) do |form, args| 
-            args[form] = :arg_0 if form == :it || form == :_1
-            args[form] = :"arg_#{args.size}" if IMPLICIT_VARS.include?(form)
-          end
-          list = list.map(&args)
-          Cons[:lambda, Cons[*args.values], *list]
-        else
-          Cons[form, :to_proc]
-        end
+        read_proc!
       elsif current_token == OPEN_PAREN
         next_token!
         read_list!
@@ -82,6 +73,19 @@ module Kigo
 
         raise "Invalid token #{current_token.inspect} at line #{@line} column #{@column}"
       end
+    end
+
+    def read_proc!
+      list = next!
+      return Cons[:send, list, :to_proc] unless list.is_a?(Cons)
+      
+      args = list.each_with_object({}) do |form, args| 
+        args[form] = :arg_0 if form == :it || form == :_1
+        args[form] = :"arg_#{args.size}" if IMPLICIT_VARS.include?(form)
+      end
+
+      list = list.map(&args)
+      Cons[:lambda, Cons[*args.values], *list]
     end
 
     def read_string!
