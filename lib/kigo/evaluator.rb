@@ -27,7 +27,7 @@ module Kigo
     end
   end
 
-  def method_missing(method, *args)
+  def method_missing(method, form, env)
     raise RuntimeError, "Invalid form: #{form.inspect}:#{form.class}"
   end
 
@@ -51,6 +51,10 @@ module Kigo
 
   def Symbol(form, env)
     return env.receiver if form == :self
+
+    if form[0] =~ /\A[A-Z]/ && Kernel.const_defined?(form)
+      return Kernel.const_get(form)
+    end
 
     env.local_variable_get(form)
   end
