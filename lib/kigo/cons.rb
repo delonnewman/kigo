@@ -33,6 +33,7 @@ module Kigo
         yield xs.car
         xs = xs.cdr
       end
+      self
     end
 
     def [](n)
