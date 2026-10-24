@@ -48,18 +48,26 @@ module Kigo
       node.body.map { compile(it) }.join(' ')
     when Prism::IntegerNode, Prism::FloatNode
       node.slice
+    when Prism::StringNode
+      node.slice
     when Prism::ParenthesesNode
       "(progn #{compile(node.body)})"
     when Prism::CallNode
+      if !node.receiver && Kernel.respond_to?(node.name)
+        return "(kigo:#{node.name} #{node.arguments.arguments.map { compile(it) }.join(' ')})"
+      end
+
       case node.name
       when :+, :-, :*, :/, :<, :>, :<=, :>=
         "(#{node.name} #{compile(node.receiver)} #{compile(node.arguments.arguments.first)})"
       when :%
         "(mod #{compile(node.receiver)} #{compile(node.arguments.arguments.first)})"
       else
+        binding.irb
         raise "unknown method call #{node}:#{node.name}"
       end
     else
+      binding.irb
       raise "unknown node #{node}:#{node.class}"
     end
   end
