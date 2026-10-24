@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'open3'
 require 'securerandom'
 
 module Kigo
@@ -7,6 +8,18 @@ module Kigo
     def initialize(path)
       @path = path
       @io   = nil
+    end
+
+    def create_binary(code, output)
+      File.write("#{output}.lisp", code)
+
+      _, err, status = Open3.capture3(
+        @path, '--noinform', '--non-interactive',
+        '--load', "#{output}.lisp",
+        '--eval', %((sb-ext:save-lisp-and-die "#{output}" :executable t :toplevel (function main) :save-runtime-options t))
+      )
+
+      raise "sbcl failed: #{err}" unless status.success?
     end
 
     def start

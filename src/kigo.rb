@@ -2,6 +2,7 @@ require 'prism'
 
 require_relative 'kigo/config'
 require_relative 'kigo/sbcl'
+require_relative 'kigo/lisp_program'
 
 module Kigo
   def self.config
@@ -18,8 +19,19 @@ module Kigo
     @sbcl ||= SBCL.new(config.sbcl_path)
   end
 
+  def self.eval_file(file)
+    code = File.read(file)
+    sbcl.start.eval_string(compile_string(code, file:))
+  end
+
   def self.eval_string(code)
-    sbcl.eval_string(compile_string(code))
+    sbcl.start.eval_string(compile_string(code))
+  end
+
+  def self.create_binary(file, output)
+    code = File.read(file)
+    lisp_code = compile_string(code, file: file)
+    sbcl.create_binary(LispProgram.new(lisp_code), output)
   end
 
   def self.compile_string(code, file: nil)
