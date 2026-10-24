@@ -9,9 +9,9 @@ module Kigo
 
     def to_s
       <<~LISP
-      "(defun main ()
+      (defun main ()
          #{@code}
-         (sb-ext:exit :code 0))"
+         (sb-ext:exit :code 0))
       LISP
     end
   end
