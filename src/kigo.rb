@@ -46,7 +46,7 @@ module Kigo
       "(progn #{compile(node.statements)})"
     when Prism::StatementsNode
       node.body.map { compile(it) }.join(' ')
-    when Prism::IntegerNode
+    when Prism::IntegerNode, Prism::FloatNode
       node.slice
     when Prism::ParenthesesNode
       "(progn #{compile(node.body)})"
