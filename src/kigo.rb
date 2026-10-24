@@ -1,6 +1,27 @@
 require 'prism'
 
+require_relative 'kigo/config'
+require_relative 'kigo/sbcl'
+
 module Kigo
+  def self.config
+    @config ||= Config.new
+  end
+
+  def self.configure
+    yield config if block_given?
+
+    config
+  end
+
+  def self.sbcl
+    @sbcl ||= SBCL.new(config.sbcl_path)
+  end
+
+  def self.eval_string(code)
+    sbcl.eval_string(compile_string(code))
+  end
+
   def self.compile_string(code, file: nil)
     result = Prism.parse(code, freeze: true, filepath: file)
     compile(result.value)
@@ -37,3 +58,11 @@ __END__
 Prism.parse('(1 - (6 - 5))').value.statements.body.first.body.body
 Kigo.compile_string('(1 - (6 - 5))')
 Kigo.compile_string('(1 - 6 - 5)')
+
+Kigo.configure do |config| 
+  config.sbcl_path = '/opt/homebrew/bin/sbcl'
+end
+
+Kigo.config.sbcl_path
+Kigo.sbcl.start
+Kigo.sbcl.eval_string('(+ 45 90)')
