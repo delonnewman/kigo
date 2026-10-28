@@ -4,6 +4,9 @@
 
 (in-package :kigo)
 
+(defparameter *rb-global-context* nil
+  "Ruby's $_ variable")
+
 (defun puts (object)
   "Equivalent to
 ```ruby
@@ -34,4 +37,9 @@ a time, where paragraphs are divided by two consecutive newlines. If the first
 argument is an integer, or optional second argument is given, the returning
 string would not be longer than the given value in bytes. If multiple filenames
 are present in ARGV, gets(nil) will read the contents one file at a time."
-  (read-char *standard-input*))
+  (multiple-value-bind (line missing-newline-p)
+      (read-line *standard-input* nil nil)
+    (setf *rb-global-context*
+          (cond ((null line) nil)
+                (missing-newline-p line)
+                (t (concatenate 'string line (string #\Newline)))))))
