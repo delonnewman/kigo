@@ -57,7 +57,7 @@ module Kigo
     when Prism::IntegerNode, Prism::FloatNode
       node.slice
     when Prism::StringNode
-      node.slice
+      %("#{node.unescaped.gsub(/["\\]/) { "\\#{_1}" }}")
     when Prism::ParenthesesNode
       "(progn #{compile(node.body)})"
     when Prism::CallNode

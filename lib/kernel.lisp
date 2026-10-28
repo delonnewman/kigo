@@ -4,12 +4,18 @@
 
 (in-package :kigo)
 
-(defun puts (string)
+(defun puts (object)
   "Equivalent to
 ```ruby
 $stdout.puts
 ```'"
-  (print string *standard-output*))
+  (princ
+   (if (and (stringp object)
+            (char= #\Newline (aref object (1- (array-total-size object)))))
+       object
+       (concatenate 'string object (string #\Newline)))
+   *standard-output*)
+  nil)
 
 (defun gets ()
   "gets(sep=$/ [, getline_args]) → string or nil
@@ -25,4 +31,6 @@ a time, where paragraphs are divided by two consecutive newlines. If the first
 argument is an integer, or optional second argument is given, the returning
 string would not be longer than the given value in bytes. If multiple filenames
 are present in ARGV, gets(nil) will read the contents one file at a time."
-  (read-line))
+  (read-char *standard-input*))
+
+(simple-string-p "Hey")
