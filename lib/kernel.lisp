@@ -9,7 +9,7 @@
 ```ruby
 $stdout.puts
 ```'"
-  (print string))
+  (print string *standard-output*))
 
 (defun gets ()
   "gets(sep=$/ [, getline_args]) → string or nil
