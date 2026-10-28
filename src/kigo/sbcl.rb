@@ -2,6 +2,7 @@
 
 require 'open3'
 require 'securerandom'
+require 'logger'
 
 module Kigo
   class SBCL
@@ -11,6 +12,7 @@ module Kigo
     end
 
     def create_binary(code, output)
+      Kigo.log.info "Creating binary in #{output}..."
       File.write("#{output}.lisp", code)
 
       _, err, status = Open3.capture3(
@@ -23,17 +25,24 @@ module Kigo
     end
 
     def start
-      @io ||= IO.popen([@path, '--noinform', '--disable-debugger'], 'r+')
+      return self if @io
+
+      Kigo.log.info "Starting SBCL from #{@path}..."
+      @io = IO.popen([@path, '--noinform', '--disable-debugger'], 'r+')
       at_exit { @io.close unless @io.closed? }
+      eval_string("(load \"#{Kigo.kernel}\")")
+
       self
     end
 
     def stop
       return unless @io
 
+      Kigo.log.info 'Attemping to stop SBCL...'
       @io.puts '(sb-ext:exit)'
       @io.close
       @io = nil
+      Kigo.log.info 'Stopped SBCL service.'
 
       self
     end
@@ -41,8 +50,11 @@ module Kigo
     def kill
       return unless @io
 
+      pid = @io.pid
+      Kigo.log.info "Attempting to kill SBCL service #{pid}..."
       Process.kill('TERM', @io.pid)
       @io = nil
+      Kigo.log.info "Killed SBCL service #{pid}."
 
       self
     end
@@ -52,6 +64,7 @@ module Kigo
     def eval_string(code)
       raise "service has not been initialized call 'start' method" unless @io
 
+      Kigo.log.info "Evaluating code #{code.inspect}..."
       @io.puts code
       @io.puts %((format t "~%#{SENTINEL}~%"))
       @io.flush

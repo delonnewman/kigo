@@ -15,6 +15,14 @@ module Kigo
     config
   end
 
+  def self.kernel
+    @kernel ||= Pathname.new(config.kernel_path)
+  end
+
+  def self.log
+    @log ||= Logger.new(config.log_path, level: config.log_level, progname: name)
+  end
+
   def self.sbcl
     @sbcl ||= SBCL.new(config.sbcl_path)
   end

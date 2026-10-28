@@ -12,6 +12,6 @@ examples/echo:
 	./bin/kigoc examples/echo.rb examples/echo
 
 clean:
-	rm examples/basic
+	rm examples/basic examples/funcall examples/echo
 
 PHONY: clean all

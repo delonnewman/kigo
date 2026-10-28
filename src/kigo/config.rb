@@ -1,11 +1,19 @@
 module Kigo
   class Config
-    attr_writer :sbcl_path
+    %i[sbcl_path kernel_path log_level log_path].each do |attribute| 
+      attr_writer attribute
 
-    def sbcl_path
-      raise "sbcl_path has not been set" unless @sbcl_path
+      class_eval <<~RUBY, __FILE__, __LINE__ + 1
+        def #{attribute}
+          raise "#{attribute} has not been set" unless @#{attribute}
 
-      @sbcl_path
+          @#{attribute}
+        end
+      RUBY
+
+      def root_path
+        @root_path ||= Pathname.new(__dir__).join('../..')
+      end
     end
   end
 end

@@ -1,9 +1,5 @@
 #!/usr/bin/env ruby
-require_relative '../src/kigo'
-
-Kigo.configure do |config|
-  config.sbcl_path = '/opt/homebrew/bin/sbcl'
-end
+require_relative '../config/boot'
 
 if ARGV.length == 2
   Kigo.create_binary(ARGV[0], ARGV[1])
