@@ -11,11 +11,14 @@ $stdout.puts
 ```'"
   (princ
    (if (and (stringp object)
-            (char= #\Newline (aref object (1- (array-total-size object)))))
+            (char= #\Newline (last-elem object)))
        object
        (concatenate 'string object (string #\Newline)))
    *standard-output*)
   nil)
+
+(defun last-elem (array)
+  (aref array (1- (array-total-size array))))
 
 (defun gets ()
   "gets(sep=$/ [, getline_args]) → string or nil
@@ -32,5 +35,3 @@ argument is an integer, or optional second argument is given, the returning
 string would not be longer than the given value in bytes. If multiple filenames
 are present in ARGV, gets(nil) will read the contents one file at a time."
   (read-char *standard-input*))
-
-(simple-string-p "Hey")
