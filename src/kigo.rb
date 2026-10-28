@@ -53,9 +53,7 @@ module Kigo
     when Prism::ParenthesesNode
       "(progn #{compile(node.body)})"
     when Prism::CallNode
-      if !node.receiver && Kernel.respond_to?(node.name)
-        return "(kigo:#{node.name} #{node.arguments.arguments.map { compile(it) }.join(' ')})"
-      end
+      return compile_call(node) if !node.receiver && Kernel.respond_to?(node.name)
 
       case node.name
       when :+, :-, :*, :/, :<, :>, :<=, :>=
@@ -70,6 +68,14 @@ module Kigo
       binding.irb
       raise "unknown node #{node}:#{node.class}"
     end
+  end
+
+  private
+
+  def self.compile_call(node)
+    return "(kigo:#{node.name})" unless node.arguments
+
+    "(kigo:#{node.name} #{node.arguments.arguments.map { compile(it) }.join(' ')})"
   end
 end
 
