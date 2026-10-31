@@ -47,6 +47,10 @@ module Kigo
     compile(result.value)
   end
 
+  GLOBALS = {
+    :$_ => '*rb-topic-variable*'
+  }.freeze
+
   # FIXME: Prism off-by-one error Prism.parse('1 2 3 4').value.statements.body.map(&:value) # => [2, 3, 3, 4]
   def self.compile(node)
     case node
@@ -60,6 +64,11 @@ module Kigo
       %("#{node.unescaped.gsub(/["\\]/) { "\\#{_1}" }}")
     when Prism::ParenthesesNode
       "(progn #{compile(node.body)})"
+    when Prism::GlobalVariableReadNode
+      GLOBALS.fetch(node.name) do
+        binding.irb
+        raise "unknown global #{node.name}"
+      end
     when Prism::CallNode
       return compile_call(node) if !node.receiver && Kernel.respond_to?(node.name)
 

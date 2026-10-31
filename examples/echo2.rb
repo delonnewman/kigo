@@ -1,0 +1,3 @@
+gets
+puts $_
+

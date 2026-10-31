@@ -7,6 +7,9 @@
 (defparameter *rb-topic-variable* nil
   "Ruby's $_ variable")
 
+(defparameter *rb-line-separator* #\Newline
+  "Ruby's $/ variable")
+
 (defun puts (object)
   "Equivalent to
 ```ruby
@@ -37,9 +40,9 @@ a time, where paragraphs are divided by two consecutive newlines. If the first
 argument is an integer, or optional second argument is given, the returning
 string would not be longer than the given value in bytes. If multiple filenames
 are present in ARGV, gets(nil) will read the contents one file at a time."
-  (multiple-value-bind (line missing-newline-p)
+  (multiple-value-bind (line no-newline)
       (read-line *standard-input* nil nil)
     (setf *rb-topic-variable*
           (cond ((null line) nil)
-                (missing-newline-p line)
+                (no-newline line)
                 (t (concatenate 'string line (string #\Newline)))))))
